@@ -42,7 +42,7 @@ func TestRunCommand(t *testing.T) {
 
 func TestInputRead(t *testing.T) {
 	want := "Hello world!\n"
-	got, err := history.ReadInput(bytes.NewBufferString(want))
+	got, err := history.ReadInputFrom(bytes.NewBufferString(want))
 	if err != nil {
 		t.Errorf("error reading input: %v", err)
 	}
