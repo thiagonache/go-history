@@ -2,8 +2,9 @@ package main
 
 import (
 	"history"
+	"os"
 )
 
 func main() {
-	history.Run()
+	history.Run(os.Stdout)
 }
