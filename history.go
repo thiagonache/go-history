@@ -18,10 +18,7 @@ func WriteFile(filePath string, lines []string) error {
 		return fmt.Errorf("cannot write to file %s, error %v", filePath, err)
 	}
 	for _, line := range lines {
-		// It is complicating the tests
 		f.WriteString(fmt.Sprintf("%s%s", line, "\n"))
-		// log.SetOutput(f)
-		// log.Printf("%s%s", line, "\n")
 	}
 	defer f.Close()
 
