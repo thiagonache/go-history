@@ -79,7 +79,7 @@ func HandleTerminationSignal(cmdHistory *[]string) {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		fmt.Println("\r- Ctrl+C pressed in Terminal")
+		fmt.Println("\r- Sigterm received. Gracefully shutting down")
 		WriteFile(".history", *cmdHistory)
 		os.Exit(0)
 	}()
