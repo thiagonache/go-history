@@ -3,13 +3,14 @@ package history_test
 import (
 	"bytes"
 	"history"
-	"os/exec"
+	"strings"
 	"testing"
+
+	"github.com/bitfield/script"
 )
 
 func TestWriteHistoryFile(t *testing.T) {
-	var want string = "rm /tmp/some_file\n"
-	var grepFor = "/tmp/some_file"
+	var want string = "rm /tmp/some_file"
 	var filePath = "/tmp/file"
 
 	strCmd := []string{"ls /tmp", "rm /tmp/some_file"}
@@ -17,26 +18,27 @@ func TestWriteHistoryFile(t *testing.T) {
 	if err != nil {
 		t.Errorf("cannot write to the file: %v", err)
 	}
-	output, err := exec.Command("grep", grepFor, "/tmp/file").Output()
+	got, err := script.File(filePath).Match(want).String()
 	if err != nil {
-		t.Errorf("cannot run grep %s %s: %v", grepFor, "/tmp/file", err)
+		t.Errorf("cannot match %s on file %s: %w", want, filePath, err)
 	}
-	got := string(output)
-	if want != got {
+	if want != strings.TrimSuffix(got, "\n") {
 		t.Errorf("want %q, got %q", want, got)
 	}
 }
 
 func TestRunCommand(t *testing.T) {
-	want := "Hello world!\n"
-	cmd := "echo"
-	args := []string{"Hello", "world!"}
-	got, err := history.RunCommand(cmd, args)
-	if err != nil {
-		t.Errorf("cannot run command %s due to %v", cmd, err)
+	wantEntrypoint := "command"
+	wantParam1 := "param1"
+	cmdLine := "command param1 paramX"
+	gotEntrypoint := strings.Split(cmdLine, " ")[0]
+	gotParam1 := strings.Split(cmdLine, " ")[1]
+
+	if wantEntrypoint != gotEntrypoint {
+		t.Errorf("want %s, got %s", wantEntrypoint, gotEntrypoint)
 	}
-	if want != got {
-		t.Errorf("want %s, got %s", want, got)
+	if wantParam1 != gotParam1 {
+		t.Errorf("want %s, got %s", wantParam1, gotParam1)
 	}
 }
 

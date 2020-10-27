@@ -6,10 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strings"
-	"syscall"
-	"time"
 )
 
 func WriteFile(filePath string, lines []string) error {
@@ -43,9 +40,7 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 }
 
 func Run() error {
-	fmt.Println("Welcome to history")
 	var cmdHistory []string
-	HandleTerminationSignal(&cmdHistory)
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Printf("$ ")
@@ -57,30 +52,16 @@ func Run() error {
 		if text == "exit" || text == "quit" {
 			break
 		}
-		cmdHistory = append(cmdHistory, fmt.Sprintf("[%d] command: %s", time.Now().Unix(), text))
+		cmdHistory = append(cmdHistory, fmt.Sprintf("command: %s", text))
 		output, err := RunCommand(strings.Split(text, " ")[0], strings.Split(text, " ")[1:])
 		if err != nil {
 			fmt.Printf("[ERROR] cannot run command %s: %v\n", text, err)
-			cmdHistory = append(cmdHistory, fmt.Sprintf("[%d] error: %s", time.Now().Unix(), err.Error()))
+			cmdHistory = append(cmdHistory, fmt.Sprintf("error: %s", err.Error()))
 			continue
 		}
 		fmt.Printf(output)
-		cmdHistory = append(cmdHistory, fmt.Sprintf("[%d] output: %s", time.Now().Unix(), output))
+		cmdHistory = append(cmdHistory, fmt.Sprintf("output: %s", output))
 	}
 	WriteFile(".history", cmdHistory)
 	return nil
-}
-
-// HandleTerminationSignal creates a 'listener' on a new goroutine which will notify the
-// program if it receives an interrupt from the OS. We then handle this by calling
-// our clean up procedure and exiting the program.
-func HandleTerminationSignal(cmdHistory *[]string) {
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		fmt.Println("\r- Sigterm received. Gracefully shutting down")
-		WriteFile(".history", *cmdHistory)
-		os.Exit(0)
-	}()
 }
