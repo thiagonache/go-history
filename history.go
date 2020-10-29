@@ -52,7 +52,7 @@ func Run() error {
 		if text == "exit" || text == "quit" {
 			break
 		}
-		cmdHistory = append(cmdHistory, fmt.Sprintf("command: %s", text))
+
 		output, err := RunCommand(strings.Split(text, " ")[0], strings.Split(text, " ")[1:])
 		if err != nil {
 			fmt.Printf("[ERROR] cannot run command %s: %v\n", text, err)
@@ -62,6 +62,18 @@ func Run() error {
 		fmt.Printf(output)
 		cmdHistory = append(cmdHistory, fmt.Sprintf("output: %s", output))
 	}
-	WriteFile(".history", cmdHistory)
+	WriteFile("history", cmdHistory)
+	return nil
+}
+
+func ExecuteAndRecordCommand(cmd string, w io.Writer) error {
+	fmt.Fprintln(w, cmd)
+	entrypoint := strings.Split(cmd, " ")[0]
+	args := strings.Split(cmd, " ")[1:]
+	output, err := RunCommand(entrypoint, args)
+	fmt.Fprint(w, output)
+	if err != nil {
+		return err
+	}
 	return nil
 }

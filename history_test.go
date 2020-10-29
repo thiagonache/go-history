@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/bitfield/script"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestWriteHistoryFile(t *testing.T) {
@@ -50,5 +51,18 @@ func TestInputRead(t *testing.T) {
 	}
 	if want != got {
 		t.Errorf("want %s, got %s.", want, got)
+	}
+}
+
+func TestExecuteAndRecordCommand(t *testing.T) {
+	command := "echo testing"
+	buf := bytes.Buffer{}
+	err := history.ExecuteAndRecordCommand(command, &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "echo testing\ntesting\n"
+	if !cmp.Equal(want, buf.String()) {
+		t.Error(cmp.Diff(want, buf.String()))
 	}
 }
