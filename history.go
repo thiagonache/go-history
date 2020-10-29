@@ -39,8 +39,7 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 	return string(output), nil
 }
 
-func Run() error {
-	var cmdHistory []string
+func Run(w io.Writer) error {
 	for {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Printf("$ ")
@@ -53,16 +52,8 @@ func Run() error {
 			break
 		}
 
-		output, err := RunCommand(strings.Split(text, " ")[0], strings.Split(text, " ")[1:])
-		if err != nil {
-			fmt.Printf("[ERROR] cannot run command %s: %v\n", text, err)
-			cmdHistory = append(cmdHistory, fmt.Sprintf("error: %s", err.Error()))
-			continue
-		}
-		fmt.Printf(output)
-		cmdHistory = append(cmdHistory, fmt.Sprintf("output: %s", output))
+		ExecuteAndRecordCommand(text, w)
 	}
-	WriteFile("history", cmdHistory)
 	return nil
 }
 

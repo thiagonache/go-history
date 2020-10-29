@@ -56,13 +56,14 @@ func TestInputRead(t *testing.T) {
 
 func TestExecuteAndRecordCommand(t *testing.T) {
 	command := "echo testing"
-	buf := bytes.Buffer{}
-	err := history.ExecuteAndRecordCommand(command, &buf)
+	var got bytes.Buffer
+	err := history.ExecuteAndRecordCommand(command, &got)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := "echo testing\ntesting\n"
-	if !cmp.Equal(want, buf.String()) {
-		t.Error(cmp.Diff(want, buf.String()))
+
+	if !cmp.Equal(want, got.String()) {
+		t.Error(cmp.Diff(want, got.String()))
 	}
 }
