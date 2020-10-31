@@ -6,27 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bitfield/script"
 	"github.com/google/go-cmp/cmp"
 )
-
-func TestWriteHistoryFile(t *testing.T) {
-	var want string = "rm /tmp/some_file"
-	var filePath = "/tmp/file"
-
-	strCmd := []string{"ls /tmp", "rm /tmp/some_file"}
-	err := history.WriteFile(filePath, strCmd)
-	if err != nil {
-		t.Errorf("cannot write to the file: %v", err)
-	}
-	got, err := script.File(filePath).Match(want).String()
-	if err != nil {
-		t.Errorf("cannot match %s on file %s: %w", want, filePath, err)
-	}
-	if want != strings.TrimSuffix(got, "\n") {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
 
 func TestRunCommand(t *testing.T) {
 	wantEntrypoint := "command"
@@ -43,17 +24,6 @@ func TestRunCommand(t *testing.T) {
 	}
 }
 
-func TestInputRead(t *testing.T) {
-	want := "Hello world!\n"
-	got, err := history.ReadInputFrom(bytes.NewBufferString(want))
-	if err != nil {
-		t.Errorf("error reading input: %v", err)
-	}
-	if want != got {
-		t.Errorf("want %s, got %s.", want, got)
-	}
-}
-
 func TestExecuteAndRecordCommand(t *testing.T) {
 	command := "echo testing"
 	var got bytes.Buffer
@@ -65,5 +35,25 @@ func TestExecuteAndRecordCommand(t *testing.T) {
 
 	if !cmp.Equal(want, got.String()) {
 		t.Error(cmp.Diff(want, got.String()))
+	}
+}
+
+func TestRun(t *testing.T) {
+	var got bytes.Buffer
+	var stdin bytes.Buffer
+	// For some reason via tests it does return error io.EOF
+	// when reading the reader even having \n at the end
+	_, err := stdin.WriteString("echo hello\n")
+	if err != nil {
+		t.Fatalf("cannot write string to the buffer: %e", err)
+	}
+	err = history.Run(&stdin, &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "abc"
+
+	if want != got.String() {
+		t.Fatalf("want %q and got %q", want, got.String())
 	}
 }

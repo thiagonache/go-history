@@ -45,8 +45,15 @@ func ExecuteAndRecordCommand(cmd string, w io.Writer) error {
 	args := strings.Split(cmd, " ")[1:]
 	output, err := RunCommand(entrypoint, args)
 	fmt.Fprint(w, output)
-	if err != nil {
+	if err == io.ErrUnexpectedEOF { // need to confirm io error for out of space
 		return err
 	}
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		fmt.Println(err.Error())
+	} else {
+		fmt.Println(output)
+	}
+
 	return nil
 }
