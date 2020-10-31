@@ -25,17 +25,21 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	HandleSigTerm()
-	history.Run(f)
+	HandleSigTerm(*filenamePtr)
+	err = history.Run(os.Stdin, f)
+	if err != nil {
+		log.Fatalf("%e %T", err, err)
+	}
 }
 
 // HandleSigTerm just avoid the program to crash
-func HandleSigTerm() {
+func HandleSigTerm(filename string) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
 		fmt.Println("\r- Sigterm received. Gracefully shutting down")
+		fmt.Printf("see logs at %s\n", filename)
 		os.Exit(0)
 	}()
 }
