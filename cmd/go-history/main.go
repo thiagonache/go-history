@@ -21,14 +21,22 @@ func main() {
 
 	fmt.Println("Welcome to history")
 	fmt.Printf("See %s for recorded data\n", *filenamePtr)
+
 	f, err := os.Create(*filenamePtr)
 	if err != nil {
 		log.Fatal(err)
 	}
 	HandleSigTerm(*filenamePtr)
-	err = history.Run(os.Stdin, f)
-	if err != nil {
-		log.Fatalf("%e %T", err, err)
+	for {
+		fmt.Print("$ ")
+		err = history.Run(os.Stdin, f)
+		errReceived := err != nil
+		if errReceived && err.Error() == "exit" {
+			break
+		}
+		if err != nil {
+			log.Fatalf("%e %T", err, err)
+		}
 	}
 }
 
