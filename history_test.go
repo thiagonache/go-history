@@ -25,9 +25,10 @@ func TestRunCommand(t *testing.T) {
 }
 
 func TestExecuteAndRecordCommand(t *testing.T) {
-	command := "echo testing"
+	entrypoint := "echo"
+	args := []string{"testing"}
 	var got bytes.Buffer
-	err := history.ExecuteAndRecordCommand(command, &got)
+	err := history.ExecuteAndRecordCommand(&got, entrypoint, args...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,15 +44,18 @@ func TestRun(t *testing.T) {
 	var stdin bytes.Buffer
 	// For some reason via tests it does return error io.EOF
 	// when reading the reader even having \n at the end
-	_, err := stdin.WriteString("echo hello\n")
+	_, err := stdin.WriteString("echo testing\n")
 	if err != nil {
 		t.Fatalf("cannot write string to the buffer: %e", err)
+	}
+	if err != nil {
+		t.Fatalf("cannot write newline to the buffer: %e", err)
 	}
 	err = history.Run(&stdin, &got)
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "abc"
+	want := "echo testing\ntesting\n"
 
 	if want != got.String() {
 		t.Fatalf("want %q and got %q", want, got.String())

@@ -2,6 +2,7 @@ package history
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
@@ -18,38 +19,41 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 }
 
 func Run(r io.Reader, w io.Writer) error {
-	// How can I print the $ only on CLI?
-	// Should I move the for loop to the CLI?
-	for {
-		reader := bufio.NewReader(r)
-		text, err := reader.ReadString('\n')
-		if err != nil {
-			return fmt.Errorf("error reading the input: %e", err)
-		}
-		text = text[:len(text)-1]
-		if text == "exit" || text == "quit" {
-			break
-		}
-		err = ExecuteAndRecordCommand(text, w)
-		if err != nil {
-			return err
-		}
+	reader := bufio.NewReader(r)
+	text, err := reader.ReadString('\n')
+	if err != nil && err != io.EOF {
+		return fmt.Errorf("error reading the input: %e", err)
+	}
+	text = text[:len(text)-1]
+	if text == "exit" {
+		return errors.New("exit")
+	}
+	entrypoint := strings.Split(string(text), " ")[0]
+	args := strings.Split(string(text), " ")[1:]
+	err = ExecuteAndRecordCommand(w, entrypoint, args...)
+	if err != nil {
+		return err
 	}
 
 	return nil
 }
 
-func ExecuteAndRecordCommand(cmd string, w io.Writer) error {
-	fmt.Fprintln(w, cmd)
-	entrypoint := strings.Split(cmd, " ")[0]
-	args := strings.Split(cmd, " ")[1:]
+// ExecuteAndRecordCommand takes an io.Writer (stdin or bytes.buffer), an
+// entrypoint and args to compose the full command.
+func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) error {
+	fmt.Fprintf(w, entrypoint)
+	for _, arg := range args {
+		fmt.Fprintf(w, " "+arg)
+	}
+	fmt.Fprintf(w, "\n")
 	output, err := RunCommand(entrypoint, args)
 	fmt.Fprint(w, output)
-	if err == io.ErrUnexpectedEOF { // need to confirm io error for out of space
-		return err
-	}
+	// I need help to figure this out
+	// if err == outOfSpace {
+	// 	return err
+	// }
 	if err != nil {
-		fmt.Fprintf(w, err.Error())
+		fmt.Fprintf(w, "%s\n", err.Error())
 		fmt.Println(err.Error())
 	} else {
 		fmt.Println(output)

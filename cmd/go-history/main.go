@@ -47,7 +47,7 @@ func HandleSigTerm(filename string) {
 	go func() {
 		<-c
 		fmt.Println("\r- Sigterm received. Gracefully shutting down")
-		fmt.Printf("see logs at %s\n", filename)
+		fmt.Printf("\rSee recorded data at %s\n", filename)
 		os.Exit(0)
 	}()
 }
