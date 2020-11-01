@@ -42,8 +42,6 @@ func TestExecuteAndRecordCommand(t *testing.T) {
 func TestRun(t *testing.T) {
 	var got bytes.Buffer
 	var stdin bytes.Buffer
-	// For some reason via tests it does return error io.EOF
-	// when reading the reader even having \n at the end
 	_, err := stdin.WriteString("echo testing\n")
 	if err != nil {
 		t.Fatalf("cannot write string to the buffer: %e", err)
