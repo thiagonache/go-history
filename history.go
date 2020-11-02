@@ -49,17 +49,20 @@ func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) err
 	for _, arg := range args {
 		fmt.Fprintf(w, " "+arg)
 	}
-	fmt.Fprintf(w, "\n")
+	fmt.Fprint(w, "\n")
 	output, err := RunCommand(entrypoint, args)
-	fmt.Fprint(w, output)
-	// I need help to figure this out
-	// if err == outOfSpace {
-	// 	return err
-	// }
+	// When the OS returns error we need to exit
+	if err == io.ErrClosedPipe || err == io.ErrShortWrite || err == io.ErrUnexpectedEOF {
+		return err
+	}
+	// When the command return an error we store and print the error. Otherwise,
+	// we store and print the command output
 	if err != nil {
-		fmt.Fprintf(w, "%s\n", err.Error())
+		fmt.Fprint(w, err.Error())
 		fmt.Println(err.Error())
 	} else {
+		fmt.Fprint(w, output)
+		// output already have new line at the end
 		fmt.Printf(output)
 	}
 
