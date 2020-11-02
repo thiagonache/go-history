@@ -25,7 +25,7 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 func Run(r io.Reader, w io.Writer) error {
 	reader := bufio.NewReader(r)
 	text, err := reader.ReadString('\n')
-	if err != nil && err != io.EOF {
+	if err != nil {
 		return fmt.Errorf("error reading the input: %e", err)
 	}
 	text = text[:len(text)-1]

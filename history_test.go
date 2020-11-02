@@ -46,9 +46,6 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot write string to the buffer: %e", err)
 	}
-	if err != nil {
-		t.Fatalf("cannot write newline to the buffer: %e", err)
-	}
 	err = history.Run(&stdin, &got)
 	if err != nil {
 		t.Fatal(err)
