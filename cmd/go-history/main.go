@@ -25,7 +25,6 @@ func main() {
 	HandleSigTerm(*filenamePtr)
 	fmt.Println("Welcome to history")
 	fmt.Printf("See %s for recorded data\n", *filenamePtr)
-
 	f, err := os.Create(*filenamePtr)
 	if err != nil {
 		log.Fatal(err)
