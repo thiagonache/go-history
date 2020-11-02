@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"history"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -29,6 +30,9 @@ func main() {
 	for {
 		fmt.Print("$ ")
 		err = history.Run(os.Stdin, f)
+		if err == io.EOF {
+			os.Exit(0)
+		}
 		if err != nil {
 			log.Fatal(err)
 		}
