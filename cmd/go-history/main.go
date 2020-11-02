@@ -30,10 +30,15 @@ func main() {
 	for {
 		fmt.Print("$ ")
 		err = history.Run(os.Stdin, f)
+		// io.EOF means we should exit gracefully since we have nothing else to
+		// read. It would happen if ctrl+d is pressed while reading the stdin or
+		// if exit or quit commands are entered.
 		if err == io.EOF {
+			fmt.Printf("See %s for recorded data\n", *filenamePtr)
 			os.Exit(0)
 		}
 		if err != nil {
+			fmt.Printf("See %s for recorded data\n", *filenamePtr)
 			log.Fatal(err)
 		}
 	}
