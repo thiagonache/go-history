@@ -44,7 +44,7 @@ func main() {
 	}
 }
 
-// HandleSigTerm just avoid the program to crash
+// HandleSigTerm just avoid the program to crash by handling sigterm.
 func HandleSigTerm(filename string) {
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

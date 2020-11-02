@@ -9,7 +9,7 @@ import (
 )
 
 // RunCommand takes an entrypoint and arguments, execute the command, and
-// returns the command output and error
+// returns the command output and an error if it happens.
 func RunCommand(entrypoint string, args []string) (string, error) {
 	output, err := exec.Command(entrypoint, args...).Output()
 	if err != nil {
@@ -19,8 +19,9 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 	return string(output), nil
 }
 
-// Run takes an io.Reader and an io.Writer, reads the input up to the new line
-// and call ExecuteAndRecordCommand function
+// Run takes an io.Reader and an io.Writer, reads the input up to the new line,
+// call ExecuteAndRecordCommand function and writes the output in the io.Writer.
+// An error is returned if it happens otherwise nil.
 func Run(r io.Reader, w io.Writer) error {
 	reader := bufio.NewReader(r)
 	input, err := reader.ReadString('\n')
@@ -46,7 +47,8 @@ func Run(r io.Reader, w io.Writer) error {
 }
 
 // ExecuteAndRecordCommand takes an io.Writer (stdin or bytes.buffer), an
-// entrypoint and args to compose the full command.
+// entrypoint and args to call RunCommand function. An error is returned if
+// found otherwise nil.
 func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) error {
 	fmt.Fprintf(w, entrypoint)
 	for _, arg := range args {
@@ -54,12 +56,12 @@ func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) err
 	}
 	fmt.Fprint(w, "\n")
 	output, err := RunCommand(entrypoint, args)
-	// When the OS returns error we need to exit
+	// Handles fatal errors.
 	if err == io.ErrClosedPipe || err == io.ErrShortWrite || err == io.ErrUnexpectedEOF {
 		return err
 	}
 	// When the command return an error we store and print the error. Otherwise,
-	// we store and print the command output
+	// we store and print the command output.
 	if err != nil {
 		fmt.Fprintln(w, err.Error())
 		fmt.Println(err.Error())
