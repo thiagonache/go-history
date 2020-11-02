@@ -2,13 +2,15 @@ package history
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
 
+// RunCommand takes an entrypoint and arguments, execute the command, and
+// returns the command output and error
 func RunCommand(entrypoint string, args []string) (string, error) {
 	output, err := exec.Command(entrypoint, args...).Output()
 	if err != nil {
@@ -18,6 +20,8 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 	return string(output), nil
 }
 
+// Run takes an io.Reader and an io.Writer, reads the input up to the new line
+// and call ExecuteAndRecordCommand function
 func Run(r io.Reader, w io.Writer) error {
 	reader := bufio.NewReader(r)
 	text, err := reader.ReadString('\n')
@@ -25,11 +29,11 @@ func Run(r io.Reader, w io.Writer) error {
 		return fmt.Errorf("error reading the input: %e", err)
 	}
 	text = text[:len(text)-1]
-	if text == "exit" {
-		return errors.New("exit")
+	if text == "exit" || text == "quit" {
+		os.Exit(0)
 	}
-	entrypoint := strings.Split(string(text), " ")[0]
-	args := strings.Split(string(text), " ")[1:]
+	entrypoint := strings.Split(text, " ")[0]
+	args := strings.Split(text, " ")[1:]
 	err = ExecuteAndRecordCommand(w, entrypoint, args...)
 	if err != nil {
 		return err
@@ -56,7 +60,7 @@ func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) err
 		fmt.Fprintf(w, "%s\n", err.Error())
 		fmt.Println(err.Error())
 	} else {
-		fmt.Println(output)
+		fmt.Printf(output)
 	}
 
 	return nil

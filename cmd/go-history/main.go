@@ -19,6 +19,7 @@ func main() {
 	filenamePtr := flag.String("filename", defaultFilename.Name(), "filename to save recorded data")
 	flag.Parse()
 
+	HandleSigTerm(*filenamePtr)
 	fmt.Println("Welcome to history")
 	fmt.Printf("See %s for recorded data\n", *filenamePtr)
 
@@ -26,16 +27,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	HandleSigTerm(*filenamePtr)
 	for {
 		fmt.Print("$ ")
 		err = history.Run(os.Stdin, f)
-		errReceived := err != nil
-		if errReceived && err.Error() == "exit" {
-			break
-		}
 		if err != nil {
-			log.Fatalf("%e %T", err, err)
+			log.Fatal(err)
 		}
 	}
 }
