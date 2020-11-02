@@ -53,6 +53,6 @@ func TestRun(t *testing.T) {
 	want := "echo testing\ntesting\n"
 
 	if want != got.String() {
-		t.Fatalf("want %q and got %q", want, got.String())
+		t.Errorf("want %q and got %q", want, got.String())
 	}
 }
