@@ -12,14 +12,11 @@ import (
 )
 
 func main() {
-	// creates a random filename and set as defaultFilename
 	defaultFilename, err := ioutil.TempFile("", "go-history-output-*.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	// adds flag to parse --filename
 	filenamePtr := flag.String("filename", defaultFilename.Name(), "filename to save recorded data")
-	// if flag --filename exist it will overwrite the random name
 	flag.Parse()
 
 	HandleSigTerm(*filenamePtr)
