@@ -15,7 +15,7 @@ import (
 func main() {
 	defaultFilename, err := ioutil.TempFile("", "go-history-output-*.txt")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unexpected error: %v", err)
 	}
 	filenamePtr := flag.String("filename", defaultFilename.Name(), "filename to save recorded data")
 	flag.Parse()
@@ -25,7 +25,7 @@ func main() {
 	fmt.Println("Welcome to history")
 	f, err := os.Create(*filenamePtr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Unexpected error: %v", err)
 	}
 	fmt.Printf("See %s for recorded data\n", *filenamePtr)
 	for {
@@ -39,7 +39,7 @@ func main() {
 			os.Exit(0)
 		}
 		if err != nil {
-			log.Fatalf("unexpected error: %v", err)
+			log.Fatalf("Unexpected error: %v", err)
 		}
 	}
 }

@@ -56,9 +56,11 @@ func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) err
 		fmt.Fprintf(w, " "+arg)
 	}
 	fmt.Fprint(w, "\n")
+
+	// ioErr stores any error when writing to the io.Writer
+	var ioErr error
 	// When the command return an error we store and print the error. Otherwise,
 	// we store and print the command output.
-	var ioErr error
 	if err != nil {
 		_, ioErr = fmt.Fprintln(w, err.Error())
 		fmt.Println(err.Error())
@@ -70,5 +72,6 @@ func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) err
 	if ioErr != nil {
 		return ioErr
 	}
+
 	return nil
 }
