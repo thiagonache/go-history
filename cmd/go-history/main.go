@@ -38,8 +38,7 @@ func main() {
 			os.Exit(0)
 		}
 		if err != nil {
-			fmt.Printf("See %s for recorded data\n", *filenamePtr)
-			log.Fatal(err)
+			log.Fatalf("unexpected error: %v", err)
 		}
 	}
 }

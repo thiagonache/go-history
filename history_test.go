@@ -44,7 +44,7 @@ func TestRun(t *testing.T) {
 	var stdin bytes.Buffer
 	_, err := stdin.WriteString("echo testing\n")
 	if err != nil {
-		t.Fatalf("cannot write string to the buffer: %e", err)
+		t.Fatalf("cannot write string to the buffer: %v", err)
 	}
 	err = history.Run(&stdin, &got)
 	if err != nil {

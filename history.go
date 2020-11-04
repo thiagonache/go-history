@@ -20,7 +20,7 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 }
 
 // Run takes an io.Reader and an io.Writer, reads the input up to the new line,
-// call ExecuteAndRecordCommand function and writes the output in the io.Writer.
+// call ExecuteAndRecordCommand function and writes the output into the io.Writer.
 // An error is returned if it happens otherwise nil.
 func Run(r io.Reader, w io.Writer) error {
 	reader := bufio.NewReader(r)
@@ -30,7 +30,7 @@ func Run(r io.Reader, w io.Writer) error {
 		return err
 	}
 	if err != nil {
-		return fmt.Errorf("error reading the input: %e", err)
+		return fmt.Errorf("error reading the input: %v", err)
 	}
 	input = input[:len(input)-1]
 	if input == "exit" || input == "quit" {
@@ -50,26 +50,25 @@ func Run(r io.Reader, w io.Writer) error {
 // entrypoint and args to call RunCommand function. An error is returned if
 // found otherwise nil.
 func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) error {
+	output, err := RunCommand(entrypoint, args)
 	fmt.Fprintf(w, entrypoint)
 	for _, arg := range args {
 		fmt.Fprintf(w, " "+arg)
 	}
 	fmt.Fprint(w, "\n")
-	output, err := RunCommand(entrypoint, args)
-	// Handles fatal errors.
-	if err == io.ErrClosedPipe || err == io.ErrShortWrite || err == io.ErrUnexpectedEOF {
-		return err
-	}
 	// When the command return an error we store and print the error. Otherwise,
 	// we store and print the command output.
+	var ioErr error
 	if err != nil {
-		fmt.Fprintln(w, err.Error())
+		_, ioErr = fmt.Fprintln(w, err.Error())
 		fmt.Println(err.Error())
 	} else {
-		// output already have new line at the end
-		fmt.Fprint(w, output)
+		// output already have a new line at the end.
+		_, ioErr = fmt.Fprint(w, output)
 		fmt.Print(output)
 	}
-
+	if ioErr != nil {
+		return ioErr
+	}
 	return nil
 }
