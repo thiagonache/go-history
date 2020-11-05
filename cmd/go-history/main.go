@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"history"
-	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -28,20 +27,13 @@ func main() {
 		log.Fatalf("Unexpected error: %v", err)
 	}
 	fmt.Printf("See %s for recorded data\n", *filenamePtr)
-	for {
-		fmt.Print("$ ")
-		err = history.Run(os.Stdin, f)
-		// io.EOF means we should exit gracefully since we have nothing else to
-		// read. It would happen if ctrl+d is pressed while reading the stdin or
-		// if exit or quit commands are entered.
-		if err == io.EOF {
-			fmt.Printf("See %s for recorded data\n", *filenamePtr)
-			os.Exit(0)
-		}
-		if err != nil {
-			log.Fatalf("Unexpected error: %v", err)
-		}
+
+	err = history.Run(os.Stdin, f)
+	// err.Is or err.As
+	if err != nil {
+		log.Fatalf("Unexpected error: %v", err)
 	}
+	fmt.Printf("See %s for recorded data\n", *filenamePtr)
 }
 
 // HandleSigTerm just avoid the program to crash by handling sigterm.

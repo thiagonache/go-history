@@ -23,27 +23,29 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 // call ExecuteAndRecordCommand function and writes the output into the io.Writer.
 // An error is returned if it happens otherwise nil.
 func Run(r io.Reader, w io.Writer) error {
-	reader := bufio.NewReader(r)
-	input, err := reader.ReadString('\n')
-	// When control+d is pressed we get EOF which should be handled gracefully
-	if err == io.EOF {
-		return err
+	for {
+		fmt.Fprint(w, "$ ")
+		reader := bufio.NewReader(r)
+		input, err := reader.ReadString('\n')
+		// When control+d is pressed we get EOF which should be handled gracefully
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			// %w preserve error type
+			return fmt.Errorf("error reading the input: %w", err)
+		}
+		input = input[:len(input)-1]
+		if input == "exit" || input == "quit" {
+			return nil
+		}
+		entrypoint := strings.Split(input, " ")[0]
+		args := strings.Split(input, " ")[1:]
+		err = ExecuteAndRecordCommand(w, entrypoint, args...)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
-		return fmt.Errorf("error reading the input: %v", err)
-	}
-	input = input[:len(input)-1]
-	if input == "exit" || input == "quit" {
-		return io.EOF
-	}
-	entrypoint := strings.Split(input, " ")[0]
-	args := strings.Split(input, " ")[1:]
-	err = ExecuteAndRecordCommand(w, entrypoint, args...)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ExecuteAndRecordCommand takes an io.Writer (stdin or bytes.buffer), an

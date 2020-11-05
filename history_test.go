@@ -50,7 +50,7 @@ func TestRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "echo testing\ntesting\n"
+	want := "$ echo testing\ntesting\n$ "
 
 	if !cmp.Equal(want, got.String()) {
 		t.Error(cmp.Diff(want, got.String()))
