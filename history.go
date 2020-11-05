@@ -4,73 +4,76 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
 	"strings"
 )
 
-func WriteFile(filePath string, lines []string) error {
-	f, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("cannot write to file %s, error %v", filePath, err)
-	}
-	for _, line := range lines {
-		// It is complicating the tests
-		//f.WriteString(fmt.Sprintf("[%d] %s%s", time.Now().Unix(), line, "\n"))
-		f.WriteString(fmt.Sprintf("%s%s", line, "\n"))
-	}
-	defer f.Close()
-
-	return nil
-}
-
-func ReadInput(r io.Reader) (string, error) {
-	reader := bufio.NewReader(r)
-	text, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("cannot read input: %v", err)
-	}
-	return text, nil
-}
-
+// RunCommand takes an entrypoint and arguments, execute the command, and
+// returns the command output and an error if it happens.
 func RunCommand(entrypoint string, args []string) (string, error) {
 	output, err := exec.Command(entrypoint, args...).Output()
 	if err != nil {
 		return "", err
 	}
+
 	return string(output), nil
 }
 
-func Run() error {
-	fmt.Println("Welcome to history")
-	var cmdHistory []string
+// Run takes an io.Reader and an io.Writer, reads the input up to the new line,
+// call ExecuteAndRecordCommand function and writes the output into the io.Writer.
+// An error is returned if it happens otherwise nil.
+func Run(r io.Reader, w io.Writer) error {
 	for {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("$ ")
-		text, err := reader.ReadString('\n')
-		text = text[:len(text)-1]
+		fmt.Fprint(w, "$ ")
+		reader := bufio.NewReader(r)
+		input, err := reader.ReadString('\n')
+		// When control+d is pressed we get EOF which should be handled gracefully
+		if err == io.EOF {
+			return nil
+		}
 		if err != nil {
-			return fmt.Errorf("error reading the input")
+			// %w preserve error type
+			return fmt.Errorf("error reading the input: %w", err)
 		}
-		//fmt.Println(text)
-		if text == "exit" || text == "quit" {
-			break
+		input = input[:len(input)-1]
+		if input == "exit" || input == "quit" {
+			return nil
 		}
-		output, err := RunCommand(strings.Split(text, " ")[0], strings.Split(text, " ")[1:])
+		entrypoint := strings.Split(input, " ")[0]
+		args := strings.Split(input, " ")[1:]
+		err = ExecuteAndRecordCommand(w, entrypoint, args...)
 		if err != nil {
-			fmt.Printf("[ERROR] cannot run command %s: %v\n", text, err)
+			return err
 		}
-		fmt.Printf(output)
-		cmdHistory = append(cmdHistory, text)
-		// switch text {
-		// case "exit\n":
-		// 	break
-		// case "quit\n":
-		// 	break
-		// default:
-		// 	RunCommand(text, nil)
-		// }
 	}
-	WriteFile(".history", cmdHistory)
+}
+
+// ExecuteAndRecordCommand takes an io.Writer (stdin or bytes.buffer), an
+// entrypoint and args to call RunCommand function. An error is returned if
+// found otherwise nil.
+func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) error {
+	output, err := RunCommand(entrypoint, args)
+	fmt.Fprintf(w, entrypoint)
+	for _, arg := range args {
+		fmt.Fprintf(w, " "+arg)
+	}
+	fmt.Fprint(w, "\n")
+
+	// ioErr stores any error when writing to the io.Writer
+	var ioErr error
+	// When the command return an error we store and print the error. Otherwise,
+	// we store and print the command output.
+	if err != nil {
+		_, ioErr = fmt.Fprintln(w, err.Error())
+		fmt.Println(err.Error())
+	} else {
+		// output already have a new line at the end.
+		_, ioErr = fmt.Fprint(w, output)
+		fmt.Print(output)
+	}
+	if ioErr != nil {
+		return ioErr
+	}
+
 	return nil
 }

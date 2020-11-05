@@ -3,50 +3,56 @@ package history_test
 import (
 	"bytes"
 	"history"
-	"os/exec"
+	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
-func TestWriteHistoryFile(t *testing.T) {
-	var want string = "rm /tmp/some_file\n"
-	var grepFor = "/tmp/some_file"
-	var filePath = "/tmp/file"
-
-	strCmd := []string{"ls /tmp", "rm /tmp/some_file"}
-	err := history.WriteFile(filePath, strCmd)
-	if err != nil {
-		t.Errorf("cannot write to the file: %v", err)
-	}
-	output, err := exec.Command("grep", grepFor, "/tmp/file").Output()
-	if err != nil {
-		t.Errorf("cannot run grep %s %s: %v", grepFor, "/tmp/file", err)
-	}
-	got := string(output)
-	if want != got {
-		t.Errorf("want %q, got %q", want, got)
-	}
-}
-
 func TestRunCommand(t *testing.T) {
-	want := "Hello world!\n"
-	cmd := "echo"
-	args := []string{"Hello", "world!"}
-	got, err := history.RunCommand(cmd, args)
-	if err != nil {
-		t.Errorf("cannot run command %s due to %v", cmd, err)
+	wantEntrypoint := "command"
+	wantParam1 := "param1"
+	cmdLine := "command param1 paramX"
+	gotEntrypoint := strings.Split(cmdLine, " ")[0]
+	gotParam1 := strings.Split(cmdLine, " ")[1]
+
+	if wantEntrypoint != gotEntrypoint {
+		t.Errorf("want %s, got %s", wantEntrypoint, gotEntrypoint)
 	}
-	if want != got {
-		t.Errorf("want %s, got %s", want, got)
+	if wantParam1 != gotParam1 {
+		t.Errorf("want %s, got %s", wantParam1, gotParam1)
 	}
 }
 
-func TestInputRead(t *testing.T) {
-	want := "Hello world!\n"
-	got, err := history.ReadInput(bytes.NewBufferString(want))
+func TestExecuteAndRecordCommand(t *testing.T) {
+	entrypoint := "echo"
+	args := []string{"testing"}
+	var got bytes.Buffer
+	err := history.ExecuteAndRecordCommand(&got, entrypoint, args...)
 	if err != nil {
-		t.Errorf("error reading input: %v", err)
+		t.Fatal(err)
 	}
-	if want != got {
-		t.Errorf("want %s, got %s.", want, got)
+	want := "echo testing\ntesting\n"
+
+	if !cmp.Equal(want, got.String()) {
+		t.Error(cmp.Diff(want, got.String()))
+	}
+}
+
+func TestRun(t *testing.T) {
+	var got bytes.Buffer
+	var stdin bytes.Buffer
+	_, err := stdin.WriteString("echo testing\n")
+	if err != nil {
+		t.Fatalf("cannot write string to the buffer: %v", err)
+	}
+	err = history.Run(&stdin, &got)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "$ echo testing\ntesting\n$ "
+
+	if !cmp.Equal(want, got.String()) {
+		t.Error(cmp.Diff(want, got.String()))
 	}
 }
