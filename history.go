@@ -2,8 +2,10 @@ package history
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -11,12 +13,21 @@ import (
 // RunCommand takes an entrypoint and arguments, execute the command, and
 // returns the command output and an error if it happens.
 func RunCommand(entrypoint string, args []string) (string, error) {
-	output, err := exec.Command(entrypoint, args...).Output()
+	cmd := exec.Command(entrypoint, args...)
+	var stdout bytes.Buffer
+	if entrypoint == "vim" {
+		cmd.Stdout = os.Stdout
+	} else {
+		cmd.Stdout = &stdout
+	}
+	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
+	err := cmd.Run()
 	if err != nil {
 		return "", err
 	}
 
-	return string(output), nil
+	return stdout.String(), nil
 }
 
 // Run takes an io.Reader and an io.Writer, reads the input up to the new line,
@@ -24,7 +35,7 @@ func RunCommand(entrypoint string, args []string) (string, error) {
 // An error is returned if it happens otherwise nil.
 func Run(r io.Reader, w io.Writer) error {
 	for {
-		fmt.Fprint(w, "$ ")
+		fmt.Fprint(os.Stdout, "$ ")
 		reader := bufio.NewReader(r)
 		input, err := reader.ReadString('\n')
 		// When control+d is pressed we get EOF which should be handled gracefully
@@ -52,7 +63,6 @@ func Run(r io.Reader, w io.Writer) error {
 // entrypoint and args to call RunCommand function. An error is returned if
 // found otherwise nil.
 func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) error {
-	output, err := RunCommand(entrypoint, args)
 	fmt.Fprintf(w, entrypoint)
 	for _, arg := range args {
 		fmt.Fprintf(w, " "+arg)
@@ -63,6 +73,7 @@ func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) err
 	var ioErr error
 	// When the command return an error we store and print the error. Otherwise,
 	// we store and print the command output.
+	output, err := RunCommand(entrypoint, args)
 	if err != nil {
 		_, ioErr = fmt.Fprintln(w, err.Error())
 		fmt.Println(err.Error())
