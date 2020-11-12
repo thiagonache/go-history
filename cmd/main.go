@@ -28,7 +28,7 @@ func main() {
 	}
 	fmt.Printf("See %s for recorded data\n", *filenamePtr)
 
-	err = history.Run(os.Stdin, f)
+	err = history.RecordSession(os.Stdin, os.Stdout, f)
 	// err.Is or err.As
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
