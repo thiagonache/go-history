@@ -4,14 +4,31 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 )
+
+// LogFile is the name where the recorded data will be stored
+const LogFile = "history.log"
+
+// LogPerm is the file permission in unix format
+const LogPerm = 0644
 
 // RecordSession takes an io.Reader and an io.Writer, reads the input up to the new line,
 // call ExecuteAndRecordCommand function and writes the output into the io.Writer.
 // An error is returned if it happens otherwise nil.
 func RecordSession(r io.Reader, output io.Writer, history io.Writer) error {
+	var err error
+	// The CLI send nil to tell this function that it should create a log file.
+	if history == nil {
+		fmt.Println("Welcome to history")
+		fmt.Printf("See recorded data at %s\n", LogFile)
+		history, err = os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, LogPerm)
+		if err != nil {
+			return err
+		}
+	}
 	tee := io.MultiWriter(output, history)
 	for {
 		fmt.Fprint(tee, "$ ")

@@ -34,7 +34,7 @@ func TestRecordSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantHistory := "$ echo testing\ntesting\n$ exit\n"
+	wantHistory := "$ echo testing\ntesting\n$ "
 	if !cmp.Equal(wantHistory, historyBuf.String()) {
 		t.Error(cmp.Diff(wantHistory, historyBuf.String()))
 	}
