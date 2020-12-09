@@ -1,6 +1,6 @@
-module history
+module github/thiagonache/go-history
 
-go 1.14
+go 1.15
 
 require (
 	github.com/bitfield/script v0.18.0
