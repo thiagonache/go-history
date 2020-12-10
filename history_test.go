@@ -12,7 +12,12 @@ func TestExecuteAndRecordCommand(t *testing.T) {
 	entrypoint := "echo"
 	args := []string{"testing"}
 	var output bytes.Buffer
-	err := history.ExecuteAndRecordCommand(&bytes.Buffer{}, &output, entrypoint, args...)
+	r, err := history.NewRecorder()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.Stdout = &output
+	err = r.Execute(entrypoint, args...)
 	if err != nil {
 		t.Fatal(err)
 	}
