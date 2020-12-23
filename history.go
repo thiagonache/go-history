@@ -8,11 +8,11 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"os/signal"
 	"strings"
 )
 
-type recorder struct {
+// Recorder store object data for the package
+type Recorder struct {
 	Ctx        context.Context
 	File       io.WriteCloser
 	Path       string
@@ -24,19 +24,21 @@ type recorder struct {
 }
 
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
-func NewRecorder() (*recorder, error) {
-	return &recorder{
+func NewRecorder() (*Recorder, error) {
+	return &Recorder{
+		Ctx:        context.Background(),
 		Path:       "history.log",
 		Permission: 0664,
 		Signals:    []os.Signal{os.Interrupt},
 		Stdout:     os.Stdout,
 		Stdin:      os.Stdin,
+		Stop:       func() {},
 	}, nil
 }
 
 // EnsureHistoryFileOpen ensures the recorder log file is opened before writing
 // to it. It does allow the user to overwrite the default file path.
-func (r *recorder) EnsureHistoryFileOpen() error {
+func (r *Recorder) EnsureHistoryFileOpen() error {
 	if r.File != nil {
 		return nil
 	}
@@ -50,7 +52,7 @@ func (r *recorder) EnsureHistoryFileOpen() error {
 
 // Session reads user input which should be a shell unix command, executes it
 // and record the commands and its outputs
-func (r *recorder) Session() {
+func (r *Recorder) Session() {
 	err := r.EnsureHistoryFileOpen()
 	if err != nil {
 		fmt.Fprint(r.Stdout, err)
@@ -83,7 +85,7 @@ func (r *recorder) Session() {
 
 // Execute receives the command to run, executes it and implements
 // io.MultiWriter to write to Recorder Stdout and Recorder file.
-func (r *recorder) Execute(command string) error {
+func (r *Recorder) Execute(command string) error {
 	tee := io.MultiWriter(r.Stdout, r.File)
 	entrypoint := strings.Split(command, " ")[0]
 	args := strings.Split(command, " ")[1:]
@@ -99,15 +101,10 @@ func (r *recorder) Execute(command string) error {
 	return nil
 }
 
-// ListenSignals creates the parent context in order to handle OS Signals
-func (r *recorder) ListenSignals() {
-	r.Ctx, r.Stop = signal.NotifyContext(context.Background(), r.Signals...)
-}
-
 // Shutdown implements a graceful shutdown for the package by displaying the
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
-func (r recorder) Shutdown() {
+func (r Recorder) Shutdown() {
 	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
 	err := r.File.Close()
 	if err != nil {

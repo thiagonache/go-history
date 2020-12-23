@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"history"
 	"log"
+	"os/signal"
 )
 
 func main() {
@@ -10,8 +12,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
 	}
-	//r.ListenSignals(os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
-	r.ListenSignals()
+	r.Ctx, r.Stop = signal.NotifyContext(context.Background(), r.Signals...)
 	go r.Session()
 	select {
 	case <-r.Ctx.Done():

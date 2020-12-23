@@ -56,7 +56,6 @@ func TestSession(t *testing.T) {
 	r.Stdin = &fakeInput
 	r.Stdout = &fakeOutput
 	r.File = &historyBuf
-	r.ListenSignals()
 	r.Session()
 
 	wantHistory := "$ echo testing\ntesting\n$ "
