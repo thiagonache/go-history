@@ -1,8 +1,5 @@
 module history
 
-go 1.14
+go 1.16
 
-require (
-	github.com/bitfield/script v0.18.0
-	github.com/google/go-cmp v0.3.1
-)
+require github.com/google/go-cmp v0.5.4

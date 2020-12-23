@@ -2,78 +2,112 @@ package history
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
+	"log"
+	"os"
 	"os/exec"
 	"strings"
 )
 
-// RunCommand takes an entrypoint and arguments, execute the command, and
-// returns the command output and an error if it happens.
-func RunCommand(entrypoint string, args []string) (string, error) {
-	output, err := exec.Command(entrypoint, args...).Output()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
+// Recorder store object data for the package
+type Recorder struct {
+	Ctx        context.Context
+	File       io.WriteCloser
+	Path       string
+	Permission os.FileMode
+	Signals    []os.Signal
+	Stdin      io.Reader
+	Stdout     io.Writer
+	Stop       context.CancelFunc
 }
 
-// Run takes an io.Reader and an io.Writer, reads the input up to the new line,
-// call ExecuteAndRecordCommand function and writes the output into the io.Writer.
-// An error is returned if it happens otherwise nil.
-func Run(r io.Reader, w io.Writer) error {
+// NewRecorder instantiate a new Recorder object and returns a pointer to it.
+func NewRecorder() (*Recorder, error) {
+	return &Recorder{
+		Ctx:        context.Background(),
+		Path:       "history.log",
+		Permission: 0664,
+		Signals:    []os.Signal{os.Interrupt},
+		Stdout:     os.Stdout,
+		Stdin:      os.Stdin,
+		Stop:       func() {},
+	}, nil
+}
+
+// EnsureHistoryFileOpen ensures the recorder log file is opened before writing
+// to it. It does allow the user to overwrite the default file path.
+func (r *Recorder) EnsureHistoryFileOpen() error {
+	if r.File != nil {
+		return nil
+	}
+	history, err := os.OpenFile(r.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.Permission)
+	if err != nil {
+		return err
+	}
+	r.File = history
+	return nil
+}
+
+// Session reads user input which should be a shell unix command, executes it
+// and record the commands and its outputs
+func (r *Recorder) Session() {
+	err := r.EnsureHistoryFileOpen()
+	if err != nil {
+		fmt.Fprint(r.Stdout, err)
+	}
+	tee := io.MultiWriter(r.Stdout, r.File)
 	for {
-		fmt.Fprint(w, "$ ")
-		reader := bufio.NewReader(r)
+		fmt.Fprint(tee, "$ ")
+		reader := bufio.NewReader(r.Stdin)
 		input, err := reader.ReadString('\n')
-		// When control+d is pressed we get EOF which should be handled gracefully
 		if err == io.EOF {
-			return nil
+			r.Stop()
+			break
 		}
 		if err != nil {
-			// %w preserve error type
-			return fmt.Errorf("error reading the input: %w", err)
+			fmt.Fprint(tee, err)
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
-			return nil
+			fmt.Fprintln(tee, input)
+			r.Stop()
 		}
-		entrypoint := strings.Split(input, " ")[0]
-		args := strings.Split(input, " ")[1:]
-		err = ExecuteAndRecordCommand(w, entrypoint, args...)
-		if err != nil {
-			return err
-		}
+		fmt.Fprintln(r.File, input)
+		// err = r.Execute(input)
+		// if err == ? { // need to handle Disk full
+		// 	r.Stop()
+		// }
+		r.Execute(input)
 	}
 }
 
-// ExecuteAndRecordCommand takes an io.Writer (stdin or bytes.buffer), an
-// entrypoint and args to call RunCommand function. An error is returned if
-// found otherwise nil.
-func ExecuteAndRecordCommand(w io.Writer, entrypoint string, args ...string) error {
-	output, err := RunCommand(entrypoint, args)
-	fmt.Fprintf(w, entrypoint)
-	for _, arg := range args {
-		fmt.Fprintf(w, " "+arg)
-	}
-	fmt.Fprint(w, "\n")
-
-	// ioErr stores any error when writing to the io.Writer
-	var ioErr error
-	// When the command return an error we store and print the error. Otherwise,
-	// we store and print the command output.
+// Execute receives the command to run, executes it and implements
+// io.MultiWriter to write to Recorder Stdout and Recorder file.
+func (r *Recorder) Execute(command string) error {
+	tee := io.MultiWriter(r.Stdout, r.File)
+	entrypoint := strings.Split(command, " ")[0]
+	args := strings.Split(command, " ")[1:]
+	cmd := exec.Command(entrypoint, args...)
+	cmd.Stderr = tee
+	cmd.Stdout = tee
+	cmd.Stdin = r.Stdin
+	err := cmd.Run()
 	if err != nil {
-		_, ioErr = fmt.Fprintln(w, err.Error())
-		fmt.Println(err.Error())
-	} else {
-		// output already have a new line at the end.
-		_, ioErr = fmt.Fprint(w, output)
-		fmt.Print(output)
-	}
-	if ioErr != nil {
-		return ioErr
+		return err
 	}
 
 	return nil
+}
+
+// Shutdown implements a graceful shutdown for the package by displaying the
+// path of the file with the data recorded and make sure the file descriptor is
+// closed.
+func (r Recorder) Shutdown() {
+	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
+	err := r.File.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

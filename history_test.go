@@ -2,57 +2,69 @@ package history_test
 
 import (
 	"bytes"
+	"fmt"
 	"history"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestRunCommand(t *testing.T) {
-	wantEntrypoint := "command"
-	wantParam1 := "param1"
-	cmdLine := "command param1 paramX"
-	gotEntrypoint := strings.Split(cmdLine, " ")[0]
-	gotParam1 := strings.Split(cmdLine, " ")[1]
-
-	if wantEntrypoint != gotEntrypoint {
-		t.Errorf("want %s, got %s", wantEntrypoint, gotEntrypoint)
-	}
-	if wantParam1 != gotParam1 {
-		t.Errorf("want %s, got %s", wantParam1, gotParam1)
-	}
+type testWriteCloser struct {
+	bytes.Buffer
 }
 
-func TestExecuteAndRecordCommand(t *testing.T) {
-	entrypoint := "echo"
-	args := []string{"testing"}
-	var got bytes.Buffer
-	err := history.ExecuteAndRecordCommand(&got, entrypoint, args...)
+func (wrc *testWriteCloser) Close() error { return nil }
+
+func TestExecute(t *testing.T) {
+	command := "echo testing"
+	var output bytes.Buffer
+	r, err := history.NewRecorder()
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "echo testing\ntesting\n"
-
-	if !cmp.Equal(want, got.String()) {
-		t.Error(cmp.Diff(want, got.String()))
+	err = r.EnsureHistoryFileOpen()
+	if err != nil {
+		fmt.Fprint(r.Stdout, err)
 	}
+	r.Stdout = &output
+	err = r.Execute(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantOutput := "testing\n"
+	if !cmp.Equal(wantOutput, output.String()) {
+		t.Error(cmp.Diff(wantOutput, output.String()))
+	}
+	r.Shutdown()
 }
 
-func TestRun(t *testing.T) {
-	var got bytes.Buffer
-	var stdin bytes.Buffer
-	_, err := stdin.WriteString("echo testing\n")
+func TestSession(t *testing.T) {
+	var fakeOutput bytes.Buffer
+	var historyBuf testWriteCloser
+	var fakeInput bytes.Buffer
+
+	_, err := fakeInput.WriteString("echo testing\nexit\n")
 	if err != nil {
 		t.Fatalf("cannot write string to the buffer: %v", err)
 	}
-	err = history.Run(&stdin, &got)
+
+	r, err := history.NewRecorder()
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "$ echo testing\ntesting\n$ "
 
-	if !cmp.Equal(want, got.String()) {
-		t.Error(cmp.Diff(want, got.String()))
+	r.Stdin = &fakeInput
+	r.Stdout = &fakeOutput
+	r.File = &historyBuf
+	r.Session()
+
+	wantHistory := "$ echo testing\ntesting\n$ "
+	if !cmp.Equal(wantHistory, historyBuf.String()) {
+		t.Error(cmp.Diff(wantHistory, historyBuf.String()))
 	}
+	wantOutput := "$ testing\n$ "
+	if !cmp.Equal(wantOutput, fakeOutput.String()) {
+		t.Error(cmp.Diff(wantOutput, fakeOutput.String()))
+	}
+	r.Shutdown()
 }
