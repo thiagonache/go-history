@@ -11,9 +11,6 @@ import (
 	"os/signal"
 )
 
-// LogPerm is the file permission in unix format
-const LogPerm = 0644
-
 type Recorder struct {
 	Ctx        context.Context
 	File       io.WriteCloser
@@ -39,7 +36,7 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 	if r.File != nil {
 		return nil
 	}
-	history, err := os.OpenFile(r.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, LogPerm)
+	history, err := os.OpenFile(r.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.Permission)
 	if err != nil {
 		return err
 	}
@@ -79,12 +76,7 @@ func (r *Recorder) Session() {
 	}
 }
 
-// Execute takes an io.Writer (stdin or bytes.buffer), an
-// entrypoint and args to call RunCommand function. An error is returned if
-// found otherwise nil.
 func (r *Recorder) Execute(entrypoint string, args ...string) error {
-	// When the command return an error we store and print the error.
-	// Otherwise, we store and print the command output.
 	cmd := exec.Command(entrypoint, args...)
 	cmd.Stderr = r.Stdout
 	cmd.Stdout = r.Stdout
