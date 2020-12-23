@@ -3,7 +3,9 @@
 ## Usage
 
 ```shell
-go install "github.com/thiagonache/golang-history"
+git clone https://github.com/thiagonache/go-history.git
+cd go-history
+go cmd/main.go
 ```
 
 ## Summary
