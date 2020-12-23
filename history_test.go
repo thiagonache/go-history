@@ -15,7 +15,7 @@ type TestWriteCloser struct {
 
 func (wrc *TestWriteCloser) Close() error { return nil }
 
-func TestExecuteAndRecordCommand(t *testing.T) {
+func TestExecute(t *testing.T) {
 	command := "echo testing"
 	var output bytes.Buffer
 	r, err := history.NewRecorder()
@@ -38,7 +38,7 @@ func TestExecuteAndRecordCommand(t *testing.T) {
 	r.Shutdown()
 }
 
-func TestRecordSession(t *testing.T) {
+func TestSession(t *testing.T) {
 	var fakeOutput bytes.Buffer
 	var historyBuf TestWriteCloser
 	var fakeInput bytes.Buffer
