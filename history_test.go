@@ -9,11 +9,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type TestWriteCloser struct {
+type testWriteCloser struct {
 	bytes.Buffer
 }
 
-func (wrc *TestWriteCloser) Close() error { return nil }
+func (wrc *testWriteCloser) Close() error { return nil }
 
 func TestExecute(t *testing.T) {
 	command := "echo testing"
@@ -40,7 +40,7 @@ func TestExecute(t *testing.T) {
 
 func TestSession(t *testing.T) {
 	var fakeOutput bytes.Buffer
-	var historyBuf TestWriteCloser
+	var historyBuf testWriteCloser
 	var fakeInput bytes.Buffer
 
 	_, err := fakeInput.WriteString("echo testing\nexit\n")
