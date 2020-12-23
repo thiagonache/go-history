@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"strings"
 )
 
 type Recorder struct {
@@ -55,16 +56,15 @@ func (r *Recorder) Session() {
 		reader := bufio.NewReader(r.Stdin)
 		input, err := reader.ReadString('\n')
 		if err == io.EOF {
-			fmt.Fprintln(r.Stdout, "Ctrl + d pressed")
 			r.Stop()
 			break
 		}
 		if err != nil {
-			fmt.Fprint(r.Stdout, err)
+			fmt.Fprint(tee, err)
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
-			fmt.Fprint(r.Stdout, input)
+			fmt.Fprint(tee, input)
 			r.Stop()
 		}
 		fmt.Fprintln(r.File, input)
@@ -76,15 +76,19 @@ func (r *Recorder) Session() {
 	}
 }
 
-func (r *Recorder) Execute(entrypoint string, args ...string) error {
+func (r *Recorder) Execute(command string) error {
+	tee := io.MultiWriter(r.Stdout, r.File)
+	entrypoint := strings.Split(command, " ")[0]
+	args := strings.Split(command, " ")[1:]
 	cmd := exec.Command(entrypoint, args...)
-	cmd.Stderr = r.Stdout
-	cmd.Stdout = r.Stdout
+	cmd.Stderr = tee
+	cmd.Stdout = tee
 	cmd.Stdin = r.Stdin
 	err := cmd.Run()
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
