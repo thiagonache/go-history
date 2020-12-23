@@ -2,28 +2,36 @@ package history
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
-	"strings"
+	"os/signal"
 )
 
 // LogPerm is the file permission in unix format
 const LogPerm = 0644
 
 type Recorder struct {
-	Path string
-	File io.Writer
-	Stdout io.Writer
-	Stdin io.Reader
+	Ctx        context.Context
+	File       io.WriteCloser
+	Path       string
+	Permission os.FileMode
+	Signals    []os.Signal
+	Stdin      io.Reader
+	Stdout     io.Writer
+	Stop       context.CancelFunc
 }
 
 func NewRecorder() (*Recorder, error) {
 	return &Recorder{
-		Path: "history.log",
-		Stdout: os.Stdout,
-		Stdin: os.Stdin,
+		Path:       "history.log",
+		Permission: 0664,
+		Signals:    []os.Signal{os.Interrupt},
+		Stdout:     os.Stdout,
+		Stdin:      os.Stdin,
 	}, nil
 }
 
@@ -39,37 +47,35 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 	return nil
 }
 
-// RecordSession takes an io.Reader and an io.Writer, reads the input up to the new line,
-// call ExecuteAndRecordCommand function and writes the output into the io.Writer.
-// An error is returned if it happens otherwise nil.
-func (r *Recorder) Session() error {
-	var err error
-	fmt.Fprintln(r.Stdout, "Welcome to history")
-	fmt.Fprintf(r.Stdout, "See recorded data at %s\n", r.LogFile)
-	tee := io.MultiWriter(output, history)
+func (r *Recorder) Session() {
+	err := r.EnsureHistoryFileOpen()
+	if err != nil {
+		fmt.Fprint(r.Stdout, err)
+	}
+	tee := io.MultiWriter(r.Stdout, r.File)
 	for {
 		fmt.Fprint(tee, "$ ")
-		reader := bufio.NewReader(r)
+		reader := bufio.NewReader(r.Stdin)
 		input, err := reader.ReadString('\n')
-		// When control+d is pressed we get EOF which should be handled gracefully
 		if err == io.EOF {
-			return nil
+			fmt.Fprintln(r.Stdout, "Ctrl + d pressed")
+			r.Stop()
+			break
 		}
 		if err != nil {
-			// %w preserve error type
-			return fmt.Errorf("error reading the input: %w", err)
+			fmt.Fprint(r.Stdout, err)
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
-			return nil
+			fmt.Fprint(r.Stdout, input)
+			r.Stop()
 		}
-		fmt.Fprintln(history, input)
-		entrypoint := strings.Split(input, " ")[0]
-		args := strings.Split(input, " ")[1:]
-		err = Execute(entrypoint, args...)
-		if err != nil {
-			return err
-		}
+		fmt.Fprintln(r.File, input)
+		// err = r.Execute(input)
+		// if err == ? { // need to handle Disk full
+		// 	r.Stop()
+		// }
+		r.Execute(input)
 	}
 }
 
@@ -88,4 +94,21 @@ func (r *Recorder) Execute(entrypoint string, args ...string) error {
 		return err
 	}
 	return nil
+}
+
+func (r *Recorder) Close() error {
+	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
+	return r.File.Close()
+}
+
+func (r *Recorder) ListenSignals() {
+	r.Ctx, r.Stop = signal.NotifyContext(context.Background(), r.Signals...)
+}
+
+func (r Recorder) Shutdown() {
+	err := r.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Some extra cleanup")
 }
