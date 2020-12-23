@@ -64,7 +64,7 @@ func (r *Recorder) Session() {
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
-			fmt.Fprint(tee, input)
+			fmt.Fprintln(tee, input)
 			r.Stop()
 		}
 		fmt.Fprintln(r.File, input)
@@ -92,19 +92,14 @@ func (r *Recorder) Execute(command string) error {
 	return nil
 }
 
-func (r *Recorder) Close() error {
-	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
-	return r.File.Close()
-}
-
 func (r *Recorder) ListenSignals() {
 	r.Ctx, r.Stop = signal.NotifyContext(context.Background(), r.Signals...)
 }
 
 func (r Recorder) Shutdown() {
-	err := r.Close()
+	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
+	err := r.File.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Some extra cleanup")
 }
