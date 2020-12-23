@@ -5,7 +5,7 @@
 ```shell
 git clone https://github.com/thiagonache/go-history.git
 cd go-history
-go cmd/main.go
+go run cmd/main.go
 ```
 
 ## Summary
