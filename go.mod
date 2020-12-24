@@ -1,4 +1,4 @@
-module history
+module github.com/thiagonache/go-history
 
 go 1.16
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"history"
+	history "github.com/thiagonache/go-history"
 	"log"
 	"os/signal"
 )
