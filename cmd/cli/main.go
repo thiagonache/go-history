@@ -1,10 +1,9 @@
 package main
 
 import (
-	"context"
-	history "github.com/thiagonache/go-history"
 	"log"
-	"os/signal"
+
+	history "github.com/thiagonache/go-history"
 )
 
 func main() {
@@ -12,7 +11,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
 	}
-	r.Ctx, r.Stop = signal.NotifyContext(context.Background(), r.Signals...)
 	go r.Session()
 	select {
 	case <-r.Ctx.Done():
