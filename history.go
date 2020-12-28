@@ -55,7 +55,9 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 func (r *Recorder) Session() {
 	err := r.EnsureHistoryFileOpen()
 	if err != nil {
-		fmt.Fprint(r.Stdout, err)
+		r.Stop()
+		fmt.Fprintln(r.Stdout, err)
+		os.Exit(1)
 	}
 	tee := io.MultiWriter(r.Stdout, r.File)
 	for {
@@ -98,6 +100,11 @@ func (r *Recorder) Execute(command string) error {
 	}
 
 	return nil
+}
+
+// SetPath takes a string and set history log file path
+func (r *Recorder) SetPath(path string) {
+	r.Path = path
 }
 
 // Shutdown implements a graceful shutdown for the package by displaying the

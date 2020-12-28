@@ -11,6 +11,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
 	}
+	r.SetPath("/tmp/history.log")
 	go r.Session()
 	select {
 	case <-r.Ctx.Done():
