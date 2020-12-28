@@ -3,8 +3,9 @@ package history_test
 import (
 	"bytes"
 	"fmt"
-	history "github.com/thiagonache/go-history"
 	"testing"
+
+	history "github.com/thiagonache/go-history"
 
 	"github.com/google/go-cmp/cmp"
 )

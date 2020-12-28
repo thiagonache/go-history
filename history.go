@@ -75,11 +75,10 @@ func (r *Recorder) Session() {
 			r.Stop()
 		}
 		fmt.Fprintln(r.File, input)
-		// err = r.Execute(input)
-		// if err == ? { // need to handle Disk full
-		// 	r.Stop()
-		// }
-		r.Execute(input)
+		err = r.Execute(input)
+		if err != nil {
+			fmt.Fprintln(tee, err)
+		}
 	}
 }
 
