@@ -17,28 +17,55 @@ type testWriteCloser struct {
 func (wrc *testWriteCloser) Close() error { return nil }
 
 func TestExecute(t *testing.T) {
-	command := "echo testing"
-	var output bytes.Buffer
-	r, err := history.NewRecorder()
-	if err != nil {
-		t.Fatal(err)
+	testCases := []struct {
+		command     string
+		desc        string
+		errExpected bool
+		output      bytes.Buffer
+		want        string
+	}{
+		{
+			desc:    "Simple Echo",
+			command: "echo testing",
+			want:    "testing\n",
+		},
+		{
+			desc:        "Non-existing command",
+			command:     "abc",
+			want:        "exec: \"abc\": executable file not found in $PATH",
+			errExpected: true,
+		},
 	}
-	err = r.EnsureHistoryFileOpen()
-	if err != nil {
-		fmt.Fprint(r.Stdout, err)
-	}
-	r.Stdout = &output
-	err = r.Execute(command)
-	if err != nil {
-		t.Fatal(err)
-	}
-	wantOutput := "testing\n"
-	if !cmp.Equal(wantOutput, output.String()) {
-		t.Error(cmp.Diff(wantOutput, output.String()))
-	}
-	r.Shutdown()
-}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			r, err := history.NewRecorder()
+			if err != nil {
+				t.Fatal(err)
+			}
+			// EnsureHistoryFileOpen is required here because it happens on the
+			// Session function in order to follow the designed flow.
+			err = r.EnsureHistoryFileOpen()
+			if err != nil {
+				fmt.Fprint(r.Stdout, err)
+			}
+			r.Stdout = &tC.output
+			err = r.Execute(tC.command)
+			errFound := err != nil
+			output := tC.output.String()
+			if tC.errExpected {
+				if tC.errExpected != errFound {
+					t.Fatalf("unexpected error")
+				}
+				output = err.Error()
+			}
 
+			if !cmp.Equal(tC.want, output) {
+				t.Error(cmp.Diff(tC.want, output))
+			}
+			r.Shutdown()
+		})
+	}
+}
 func TestSession(t *testing.T) {
 	var fakeOutput bytes.Buffer
 	var historyBuf testWriteCloser
