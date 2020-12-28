@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
 )
 
@@ -17,7 +18,6 @@ type Recorder struct {
 	File       io.WriteCloser
 	Path       string
 	Permission os.FileMode
-	Signals    []os.Signal
 	Stdin      io.Reader
 	Stdout     io.Writer
 	Stop       context.CancelFunc
@@ -25,14 +25,14 @@ type Recorder struct {
 
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
 func NewRecorder() (*Recorder, error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	return &Recorder{
-		Ctx:        context.Background(),
+		Ctx:        ctx,
 		Path:       "history.log",
 		Permission: 0664,
-		Signals:    []os.Signal{os.Interrupt},
 		Stdout:     os.Stdout,
 		Stdin:      os.Stdin,
-		Stop:       func() {},
+		Stop:       stop,
 	}, nil
 }
 
