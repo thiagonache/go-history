@@ -16,8 +16,8 @@ import (
 type Recorder struct {
 	Ctx        context.Context
 	File       io.WriteCloser
-	Path       string
-	Permission os.FileMode
+	path       string
+	permission os.FileMode
 	Stdin      io.Reader
 	Stdout     io.Writer
 	Stop       context.CancelFunc
@@ -28,8 +28,8 @@ func NewRecorder() (*Recorder, error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	return &Recorder{
 		Ctx:        ctx,
-		Path:       "history.log",
-		Permission: 0664,
+		path:       "history.log",
+		permission: 0664,
 		Stdout:     os.Stdout,
 		Stdin:      os.Stdin,
 		Stop:       stop,
@@ -42,7 +42,7 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 	if r.File != nil {
 		return nil
 	}
-	history, err := os.OpenFile(r.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.Permission)
+	history, err := os.OpenFile(r.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.permission)
 	if err != nil {
 		return err
 	}
@@ -104,14 +104,19 @@ func (r *Recorder) Execute(command string) error {
 
 // SetPath takes a string and set history log file path
 func (r *Recorder) SetPath(path string) {
-	r.Path = path
+	r.path = path
+}
+
+// SetPermission takes a string and set history log file path
+func (r *Recorder) SetPermission(perm os.FileMode) {
+	r.permission = perm
 }
 
 // Shutdown implements a graceful shutdown for the package by displaying the
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
 func (r Recorder) Shutdown() {
-	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
+	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.path)
 	err := r.File.Close()
 	if err != nil {
 		log.Fatal(err)

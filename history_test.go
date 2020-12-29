@@ -56,6 +56,8 @@ func TestExecute(t *testing.T) {
 				if tC.errExpected != errFound {
 					t.Fatalf("unexpected error")
 				}
+				// If err expected we should compare the want to the error
+				// instead of stdout
 				output = err.Error()
 			}
 
