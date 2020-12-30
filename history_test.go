@@ -38,18 +38,19 @@ func TestExecute(t *testing.T) {
 			errExpected: true,
 		},
 	}
+	r, err := history.NewRecorder()
+	if err != nil {
+		t.Fatal(err)
+	}
+	// EnsureHistoryFileOpen is required here because it happens on the
+	// Session function in order to follow the designed flow.
+	err = r.EnsureHistoryFileOpen()
+	if err != nil {
+		fmt.Fprint(r.Stdout, err)
+	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			r, err := history.NewRecorder()
-			if err != nil {
-				t.Fatal(err)
-			}
-			// EnsureHistoryFileOpen is required here because it happens on the
-			// Session function in order to follow the designed flow.
-			err = r.EnsureHistoryFileOpen()
-			if err != nil {
-				fmt.Fprint(r.Stdout, err)
-			}
+
 			r.Stdout = &tC.output
 			err = r.Execute(tC.command)
 			errFound := err != nil
@@ -66,9 +67,9 @@ func TestExecute(t *testing.T) {
 			if !cmp.Equal(tC.want, output) {
 				t.Error(cmp.Diff(tC.want, output))
 			}
-			r.Shutdown()
 		})
 	}
+	r.Shutdown()
 }
 func TestSession(t *testing.T) {
 	t.Parallel()
