@@ -33,6 +33,10 @@ jobs:
 
       - name: Test
         run: go test -v ./...
+
+      - name: Race Condition
+        run: go test -race
+
   lint:
     name: Lint
     runs-on: ubuntu-latest
