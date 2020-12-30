@@ -140,6 +140,7 @@ func (r *Recorder) SetPermission(perm os.FileMode) {
 func (r Recorder) Shutdown() {
 	// A file should always end with a new line.
 	fmt.Fprintln(r.File)
+	fmt.Fprintln(r.File, "test\n")
 	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.path)
 	err := r.File.Close()
 	if err != nil {
