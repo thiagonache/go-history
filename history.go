@@ -80,7 +80,7 @@ func (r *Recorder) Session() {
 		os.Exit(1)
 	}
 	tee := io.MultiWriter(r.Stdout, r.File)
-	teeStderr := io.MultiWriter(r.Stderr, r.File)
+	teeErr := io.MultiWriter(r.Stderr, r.File)
 	for {
 		fmt.Fprint(tee, "$ ")
 		reader := bufio.NewReader(r.Stdin)
@@ -90,7 +90,7 @@ func (r *Recorder) Session() {
 			break
 		}
 		if err != nil {
-			fmt.Fprint(teeStderr, err)
+			fmt.Fprint(teeErr, err)
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
@@ -100,7 +100,7 @@ func (r *Recorder) Session() {
 		fmt.Fprintln(r.File, input)
 		err = r.Execute(input)
 		if err != nil {
-			fmt.Fprintln(teeStderr, err)
+			fmt.Fprintln(teeErr, err)
 		}
 	}
 }
@@ -109,11 +109,11 @@ func (r *Recorder) Session() {
 // io.MultiWriter to write to Recorder Stdout and Recorder file.
 func (r *Recorder) Execute(command string) error {
 	tee := io.MultiWriter(r.Stdout, r.File)
-	teeStderr := io.MultiWriter(r.Stderr, r.File)
+	teeErr := io.MultiWriter(r.Stderr, r.File)
 	entrypoint := strings.Split(command, " ")[0]
 	args := strings.Split(command, " ")[1:]
 	cmd := exec.Command(entrypoint, args...)
-	cmd.Stderr = teeStderr
+	cmd.Stderr = teeErr
 	cmd.Stdout = tee
 	cmd.Stdin = r.Stdin
 	err := cmd.Run()
