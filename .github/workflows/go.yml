@@ -63,9 +63,7 @@ jobs:
         working-directory: ./src/github.com/thiagonache/go-history
 
       - name: Format
-        run: |
-          BYTES=$(gofmt -d ./ | wc -c)
-          ! test -n $BYTES && gofmt -d ./ && exit 1
+        run: gofmt -d .
         working-directory: ./src/github.com/thiagonache/go-history
 
       - name: Vet
