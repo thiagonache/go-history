@@ -17,6 +17,8 @@ type testWriteCloser struct {
 func (wrc *testWriteCloser) Close() error { return nil }
 
 func TestExecute(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		command     string
 		desc        string
@@ -69,6 +71,8 @@ func TestExecute(t *testing.T) {
 	}
 }
 func TestSession(t *testing.T) {
+	t.Parallel()
+
 	var fakeOutput bytes.Buffer
 	var historyBuf testWriteCloser
 	var fakeInput bytes.Buffer

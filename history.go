@@ -9,12 +9,13 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 )
 
 // Recorder store object data for the package
 type Recorder struct {
-	Ctx        context.Context
+	Context    context.Context
 	File       io.WriteCloser
 	path       string
 	permission os.FileMode
