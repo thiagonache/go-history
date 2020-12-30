@@ -63,7 +63,11 @@ jobs:
         working-directory: ./src/github.com/thiagonache/go-history
 
       - name: Format
-        run: gofmt -d .
+        run: |
+          if [[ $(gofmt -d . | wc -c) -ne 0 ]]; then
+            gofmt -d .
+            exit 1
+          fi
         working-directory: ./src/github.com/thiagonache/go-history
 
       - name: Vet
