@@ -54,18 +54,18 @@ func TestExecute(t *testing.T) {
 			r.Stdout = &tC.output
 			err = r.Execute(tC.command)
 			errFound := err != nil
-			output := tC.output.String()
+			got := tC.output.String()
 			if tC.errExpected {
 				if tC.errExpected != errFound {
 					t.Fatalf("unexpected error")
 				}
 				// If err expected we should compare the want to the error
 				// instead of stdout
-				output = err.Error()
+				got = err.Error()
 			}
 
-			if !cmp.Equal(tC.want, output) {
-				t.Error(cmp.Diff(tC.want, output))
+			if !cmp.Equal(tC.want, got) {
+				t.Error(cmp.Diff(tC.want, got))
 			}
 		})
 	}
