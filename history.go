@@ -29,20 +29,38 @@ type Recorder struct {
 func NewRecorder() (*Recorder, error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	return &Recorder{
-		Ctx:        ctx,
+		Context:    ctx,
 		path:       "history.log",
 		permission: 0664,
-		Stdout:     os.Stdout,
+		Stderr:     os.Stderr,
 		Stdin:      os.Stdin,
+		Stdout:     os.Stdout,
 		Stop:       stop,
 	}, nil
+}
+
+func isDirectory(path string) error {
+	basedir := filepath.Dir(path)
+	info, err := os.Stat(basedir)
+	if os.IsNotExist(err) {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s is a file and must be a directory", basedir)
+	}
+	return nil
 }
 
 // EnsureHistoryFileOpen ensures the recorder log file is opened before writing
 // to it. It does allow the user to overwrite the default file path.
 func (r *Recorder) EnsureHistoryFileOpen() error {
+	// Check if file descriptor is already opened.
 	if r.File != nil {
 		return nil
+	}
+	err := isDirectory(r.path)
+	if err != nil {
+		return err
 	}
 	history, err := os.OpenFile(r.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.permission)
 	if err != nil {
