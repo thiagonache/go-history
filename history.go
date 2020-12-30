@@ -19,6 +19,7 @@ type Recorder struct {
 	File       io.WriteCloser
 	path       string
 	permission os.FileMode
+	Stderr     io.Writer
 	Stdin      io.Reader
 	Stdout     io.Writer
 	Stop       context.CancelFunc
@@ -57,10 +58,11 @@ func (r *Recorder) Session() {
 	err := r.EnsureHistoryFileOpen()
 	if err != nil {
 		r.Stop()
-		fmt.Fprintln(r.Stdout, err)
+		fmt.Fprintln(r.Stderr, err)
 		os.Exit(1)
 	}
 	tee := io.MultiWriter(r.Stdout, r.File)
+	teeStderr := io.MultiWriter(r.Stderr, r.File)
 	for {
 		fmt.Fprint(tee, "$ ")
 		reader := bufio.NewReader(r.Stdin)
@@ -70,7 +72,7 @@ func (r *Recorder) Session() {
 			break
 		}
 		if err != nil {
-			fmt.Fprint(tee, err)
+			fmt.Fprint(teeStderr, err)
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
@@ -80,7 +82,7 @@ func (r *Recorder) Session() {
 		fmt.Fprintln(r.File, input)
 		err = r.Execute(input)
 		if err != nil {
-			fmt.Fprintln(tee, err)
+			fmt.Fprintln(teeStderr, err)
 		}
 	}
 }
@@ -89,10 +91,11 @@ func (r *Recorder) Session() {
 // io.MultiWriter to write to Recorder Stdout and Recorder file.
 func (r *Recorder) Execute(command string) error {
 	tee := io.MultiWriter(r.Stdout, r.File)
+	teeStderr := io.MultiWriter(r.Stderr, r.File)
 	entrypoint := strings.Split(command, " ")[0]
 	args := strings.Split(command, " ")[1:]
 	cmd := exec.Command(entrypoint, args...)
-	cmd.Stderr = tee
+	cmd.Stderr = teeStderr
 	cmd.Stdout = tee
 	cmd.Stdin = r.Stdin
 	err := cmd.Run()
