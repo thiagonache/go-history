@@ -11,7 +11,15 @@ import (
 )
 
 type testWriteCloser struct {
-	bytes.Buffer
+	b bytes.Buffer
+}
+
+func (wrc *testWriteCloser) Write(data []byte) (int, error) {
+	return wrc.b.Write(data)
+}
+
+func (wrc *testWriteCloser) Len() int {
+	return wrc.b.Len()
 }
 
 func (wrc *testWriteCloser) Close() error { return nil }
@@ -33,8 +41,8 @@ func TestExecute(t *testing.T) {
 		},
 		{
 			desc:        "Non-existing command",
-			command:     "abc",
-			want:        "exec: \"abc\": executable file not found in $PATH",
+			command:     "doesntexist",
+			want:        "BOGUS",
 			errExpected: true,
 		},
 	}
@@ -50,27 +58,47 @@ func TestExecute(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-
-			r.Stdout = &tC.output
+			output := &bytes.Buffer{}
+			r.Stdout = output
 			err = r.Execute(tC.command)
 			errFound := err != nil
-			got := tC.output.String()
-			if tC.errExpected {
-				if tC.errExpected != errFound {
-					t.Fatalf("unexpected error")
-				}
-				// If err expected we should compare the want to the error
-				// instead of stdout
-				got = err.Error()
+			got := output.String()
+			if tC.errExpected != errFound {
+				t.Fatalf("unexpected error status %v", err)
 			}
-
-			if !cmp.Equal(tC.want, got) {
+			if !tC.errExpected && !cmp.Equal(tC.want, got) {
 				t.Error(cmp.Diff(tC.want, got))
 			}
 		})
 	}
 	r.Shutdown()
 }
+
+func TestErrorsToHistory(t *testing.T) {
+	r, err := history.NewRecorder()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = r.EnsureHistoryFileOpen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeStdErr := &bytes.Buffer{}
+	r.Stderr = fakeStdErr
+	historyBuf := &testWriteCloser{}
+	r.File = historyBuf
+	err = r.Execute("doesntexist")
+	if err == nil {
+		t.Fatal(err)
+	}
+	if fakeStdErr.Len() == 0 {
+		t.Error("want something written to stderr, got nothing")
+	}
+	if historyBuf.Len() == 0 {
+		t.Error("want something written to history file, got nothing")
+	}
+}
+
 func TestSession(t *testing.T) {
 	t.Parallel()
 
@@ -94,8 +122,8 @@ func TestSession(t *testing.T) {
 	r.Session()
 
 	wantHistory := "$ echo testing\ntesting\n$ "
-	if !cmp.Equal(wantHistory, historyBuf.String()) {
-		t.Error(cmp.Diff(wantHistory, historyBuf.String()))
+	if !cmp.Equal(wantHistory, historyBuf.b.String()) {
+		t.Error(cmp.Diff(wantHistory, historyBuf.b.String()))
 	}
 	wantOutput := "$ testing\n$ "
 	if !cmp.Equal(wantOutput, fakeOutput.String()) {

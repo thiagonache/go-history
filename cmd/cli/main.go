@@ -13,8 +13,6 @@ func main() {
 	}
 	r.SetPath("/tmp/history.log")
 	go r.Session()
-	select {
-	case <-r.Context.Done():
-		r.Shutdown()
-	}
+	<-r.Context.Done()
+	r.Shutdown()
 }
