@@ -138,7 +138,9 @@ func (r *Recorder) SetPermission(perm os.FileMode) {
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
 func (r Recorder) Shutdown() {
-	// A file should always end with a new line.
+	// Print new line since we want to print the See recorded data in a clean
+	// line. If we do not do this, the message will be printed after the $
+	// making it confusing
 	fmt.Fprintln(r.File)
 	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.path)
 	err := r.File.Close()
