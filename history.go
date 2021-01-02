@@ -98,10 +98,7 @@ func (r *Recorder) Session() {
 			r.Stop()
 		}
 		fmt.Fprintln(r.File, input)
-		err = r.Execute(input)
-		if err != nil {
-			fmt.Fprintln(teeErr, err)
-		}
+		r.Execute(input)
 	}
 }
 
