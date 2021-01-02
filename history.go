@@ -39,7 +39,7 @@ func NewRecorder() (*Recorder, error) {
 	}, nil
 }
 
-func isDirectory(path string) error {
+func isValidPath(path string) error {
 	basedir := filepath.Dir(path)
 	info, err := os.Stat(basedir)
 	if os.IsNotExist(err) {
@@ -58,7 +58,7 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 	if r.File != nil {
 		return nil
 	}
-	err := isDirectory(r.path)
+	err := isValidPath(r.path)
 	if err != nil {
 		return err
 	}
