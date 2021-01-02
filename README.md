@@ -1,6 +1,7 @@
 # Golang History
 
 ![Go](https://github.com/thiagonache/go-history/workflows/Go/badge.svg?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/thiagonache/go-history)](https://goreportcard.com/report/github.com/thiagonache/go-history)
 
 ## Usage
 
