@@ -25,6 +25,7 @@ type Recorder struct {
 	stop       context.CancelFunc
 }
 
+// Option is a function in a pointer to Recorder
 type Option func(*Recorder)
 
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
@@ -47,18 +48,21 @@ func NewRecorder(opts ...Option) (*Recorder, error) {
 	return r, nil
 }
 
+// WithLogPath implements History Log Path as functional option
 func WithLogPath(path string) Option {
 	return func(r *Recorder) {
 		r.path = path
 	}
 }
 
+// WithPermission implements History Log file permission as functional option
 func WithPermission(perm os.FileMode) Option {
 	return func(r *Recorder) {
 		r.permission = perm
 	}
 }
 
+// WithSignals implements which os.Signal to listen on as functional option
 func WithSignals(signals []os.Signal) Option {
 	return func(r *Recorder) {
 		ctx, stop := signal.NotifyContext(context.Background(), signals...)
@@ -177,6 +181,7 @@ func (r Recorder) shutdown() {
 	}
 }
 
+// WaitForExit wait until context is done and call shutdown function
 func (r *Recorder) WaitForExit() {
 	<-r.context.Done()
 	r.shutdown()
