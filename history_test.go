@@ -39,9 +39,8 @@ func TestExecute(t *testing.T) {
 			want:    "testing\n",
 		},
 		{
-			desc:        "Non-existing command",
-			command:     "doesntexist",
-			want:        "BOGUS",
+			desc:        "Force exit code not equals to zero",
+			command:     "ls /tmp/var/ls",
 			errExpected: true,
 		},
 	}
@@ -73,37 +72,31 @@ func TestExecute(t *testing.T) {
 	r.Shutdown()
 }
 
-// TO BE DISCUSSED WITH JOHN
-// func TestErrorsToHistory(t *testing.T) {
-// 	r, err := history.NewRecorder()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	err = r.EnsureHistoryFileOpen()
-// 	if err != nil {
-// 		t.Fatal(err)
-// 	}
-// 	fakeStdErr := &bytes.Buffer{}
-// 	r.Stderr = fakeStdErr
-// 	historyBuf := &testWriteCloser{}
-// 	r.File = historyBuf
-// 	err = r.Execute("doesntexist")
-// 	if err == nil {
-// 		t.Fatal(err)
-// 	}
+func TestErrorsCmdNotExist(t *testing.T) {
+	r, err := history.NewRecorder()
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = r.EnsureHistoryFileOpen()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fakeStdErr := &bytes.Buffer{}
+	r.Stderr = fakeStdErr
+	historyBuf := &testWriteCloser{}
+	r.File = historyBuf
+	err = r.Execute("doesntexist")
+	if err == nil {
+		t.Fatal(err)
+	}
 
-// These two variables will always be empty since the command where not
-// executed. The current way to write errors to stderr and history file is
-// if err != nil print to the stderr tee. I think the best we can test is
-// just is it is returning the error as it should be, but there's no way to
-// ensure it is going to be printed in case someone removes the print.
-// if fakeStdErr.Len() == 0 {
-// 	t.Error("want something written to stderr, got nothing")
-// }
-// if historyBuf.Len() == 0 {
-// 	t.Error("want something written to history file, got nothing")
-// }
-// }
+	if fakeStdErr.Len() == 0 {
+		t.Error("want something written to stderr, got nothing")
+	}
+	if historyBuf.Len() == 0 {
+		t.Error("want something written to history file, got nothing")
+	}
+}
 
 func TestSession(t *testing.T) {
 	t.Parallel()

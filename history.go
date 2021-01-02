@@ -118,6 +118,9 @@ func (r *Recorder) Execute(command string) error {
 	cmd.Stdin = r.Stdin
 	err := cmd.Run()
 	if err != nil {
+		// CMD does not capture error when command does not exist hence we need
+		// an extra print to send the data captured by CMD
+		fmt.Fprintln(cmd.Stderr, err)
 		return err
 	}
 
