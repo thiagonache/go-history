@@ -2,7 +2,6 @@ package history_test
 
 import (
 	"bytes"
-	"fmt"
 	"testing"
 
 	history "github.com/thiagonache/go-history"
@@ -128,5 +127,5 @@ func TestSession(t *testing.T) {
 	if !cmp.Equal(wantOutput, fakeOutput.String()) {
 		t.Error(cmp.Diff(wantOutput, fakeOutput.String()))
 	}
-	r.Shutdown()
+	r.WaitForExit()
 }
