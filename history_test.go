@@ -26,52 +26,27 @@ func (wrc *testWriteCloser) Close() error { return nil }
 func TestExecute(t *testing.T) {
 	t.Parallel()
 
-	testCases := []struct {
-		command     string
-		desc        string
-		errExpected bool
-		want        string
-	}{
-		{
-			desc:    "Simple Echo",
-			command: "echo testing",
-			want:    "testing\n",
-		},
-		{
-			desc:        "Force exit code not equals to zero",
-			command:     "ls /tmp/var/ls",
-			errExpected: true,
-		},
-	}
+	command := "echo testing"
+	want := "testing\n"
 	r, err := history.NewRecorder()
 	if err != nil {
 		t.Fatal(err)
 	}
-	// EnsureHistoryFileOpen is required here because it happens on the
-	// Session function in order to follow the designed flow.
-	err = r.EnsureHistoryFileOpen()
-	if err != nil {
-		fmt.Fprint(r.Stdout, err)
+	output := &bytes.Buffer{}
+	r.Stdout = output
+	r.Stderr = output
+	historyBuf := &testWriteCloser{}
+	r.File = historyBuf
+	r.Execute(command)
+	got := historyBuf.b.String()
+	if !cmp.Equal(want, got) {
+		t.Error(cmp.Diff(want, got))
 	}
-	for _, tC := range testCases {
-		t.Run(tC.desc, func(t *testing.T) {
-			output := &bytes.Buffer{}
-			r.Stdout = output
-			err = r.Execute(tC.command)
-			errFound := err != nil
-			got := output.String()
-			if tC.errExpected != errFound {
-				t.Fatalf("unexpected error status %v", err)
-			}
-			if !tC.errExpected && !cmp.Equal(tC.want, got) {
-				t.Error(cmp.Diff(tC.want, got))
-			}
-		})
-	}
-	r.Shutdown()
 }
 
 func TestErrorsCmdNotExist(t *testing.T) {
+	t.Parallel()
+
 	r, err := history.NewRecorder()
 	if err != nil {
 		t.Fatal(err)
