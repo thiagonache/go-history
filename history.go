@@ -8,16 +8,18 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
+	"path/filepath"
 	"strings"
 )
 
 // Recorder store object data for the package
 type Recorder struct {
-	Ctx        context.Context
+	Context    context.Context
 	File       io.WriteCloser
-	Path       string
-	Permission os.FileMode
-	Signals    []os.Signal
+	path       string
+	permission os.FileMode
+	Stderr     io.Writer
 	Stdin      io.Reader
 	Stdout     io.Writer
 	Stop       context.CancelFunc
@@ -25,24 +27,42 @@ type Recorder struct {
 
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
 func NewRecorder() (*Recorder, error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	return &Recorder{
-		Ctx:        context.Background(),
-		Path:       "history.log",
-		Permission: 0664,
-		Signals:    []os.Signal{os.Interrupt},
-		Stdout:     os.Stdout,
+		Context:    ctx,
+		path:       "history.log",
+		permission: 0664,
+		Stderr:     os.Stderr,
 		Stdin:      os.Stdin,
-		Stop:       func() {},
+		Stdout:     os.Stdout,
+		Stop:       stop,
 	}, nil
+}
+
+func isValidPath(path string) error {
+	basedir := filepath.Dir(path)
+	info, err := os.Stat(basedir)
+	if os.IsNotExist(err) {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("%s is a file and must be a directory", basedir)
+	}
+	return nil
 }
 
 // EnsureHistoryFileOpen ensures the recorder log file is opened before writing
 // to it. It does allow the user to overwrite the default file path.
 func (r *Recorder) EnsureHistoryFileOpen() error {
+	// Check if file descriptor is already opened.
 	if r.File != nil {
 		return nil
 	}
-	history, err := os.OpenFile(r.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.Permission)
+	err := isValidPath(r.path)
+	if err != nil {
+		return err
+	}
+	history, err := os.OpenFile(r.path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, r.permission)
 	if err != nil {
 		return err
 	}
@@ -55,9 +75,12 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 func (r *Recorder) Session() {
 	err := r.EnsureHistoryFileOpen()
 	if err != nil {
-		fmt.Fprint(r.Stdout, err)
+		r.Stop()
+		fmt.Fprintln(r.Stderr, err)
+		os.Exit(1)
 	}
 	tee := io.MultiWriter(r.Stdout, r.File)
+	teeErr := io.MultiWriter(r.Stderr, r.File)
 	for {
 		fmt.Fprint(tee, "$ ")
 		reader := bufio.NewReader(r.Stdin)
@@ -67,7 +90,7 @@ func (r *Recorder) Session() {
 			break
 		}
 		if err != nil {
-			fmt.Fprint(tee, err)
+			fmt.Fprint(teeErr, err)
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
@@ -75,10 +98,6 @@ func (r *Recorder) Session() {
 			r.Stop()
 		}
 		fmt.Fprintln(r.File, input)
-		// err = r.Execute(input)
-		// if err == ? { // need to handle Disk full
-		// 	r.Stop()
-		// }
 		r.Execute(input)
 	}
 }
@@ -87,25 +106,43 @@ func (r *Recorder) Session() {
 // io.MultiWriter to write to Recorder Stdout and Recorder file.
 func (r *Recorder) Execute(command string) error {
 	tee := io.MultiWriter(r.Stdout, r.File)
+	teeErr := io.MultiWriter(r.Stderr, r.File)
 	entrypoint := strings.Split(command, " ")[0]
 	args := strings.Split(command, " ")[1:]
 	cmd := exec.Command(entrypoint, args...)
-	cmd.Stderr = tee
+	cmd.Stderr = teeErr
 	cmd.Stdout = tee
 	cmd.Stdin = r.Stdin
 	err := cmd.Run()
 	if err != nil {
+		// CMD does not capture error when command does not exist hence we need
+		// an extra print to send the data captured by CMD
+		fmt.Fprintln(cmd.Stderr, err)
 		return err
 	}
 
 	return nil
 }
 
+// SetPath takes a string and set history log file path
+func (r *Recorder) SetPath(path string) {
+	r.path = path
+}
+
+// SetPermission takes a string and set history log file path
+func (r *Recorder) SetPermission(perm os.FileMode) {
+	r.permission = perm
+}
+
 // Shutdown implements a graceful shutdown for the package by displaying the
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
 func (r Recorder) Shutdown() {
-	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.Path)
+	// Print new line since we want to print the See recorded data in a clean
+	// line. If we do not do this, the message will be printed after the $
+	// making it confusing
+	fmt.Fprintln(r.File)
+	fmt.Fprintf(r.Stdout, "\rSee recorded data at %s\n", r.path)
 	err := r.File.Close()
 	if err != nil {
 		log.Fatal(err)
