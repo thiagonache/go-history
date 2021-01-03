@@ -9,7 +9,7 @@ import (
 func main() {
 	r, err := history.NewRecorder(
 		history.WithLogPath("/tmp/history.log"),
-		history.WithPermission(0600),
+		history.WithLogPermission(0600),
 	)
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)

@@ -58,8 +58,8 @@ func WithLogPath(path string) Option {
 	}
 }
 
-// WithPermission implements History Log file permission as functional option
-func WithPermission(perm os.FileMode) Option {
+// WithLogPermission implements History Log file permission as functional option
+func WithLogPermission(perm os.FileMode) Option {
 	return func(r *Recorder) {
 		r.permission = perm
 	}
