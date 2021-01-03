@@ -7,12 +7,13 @@ import (
 )
 
 func main() {
-	r, err := history.NewRecorder()
+	r, err := history.NewRecorder(
+		history.WithLogPath("/tmp/history.log"),
+		history.WithLogPermission(0600),
+	)
 	if err != nil {
 		log.Fatalf("Unexpected error: %v", err)
 	}
-	r.SetPath("/tmp/history.log")
 	go r.Session()
-	<-r.Context.Done()
-	r.Shutdown()
+	r.WaitForExit()
 }

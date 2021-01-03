@@ -11,32 +11,68 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // Recorder store object data for the package
 type Recorder struct {
-	Context    context.Context
+	context    context.Context
 	File       io.WriteCloser
 	path       string
 	permission os.FileMode
 	Stderr     io.Writer
 	Stdin      io.Reader
 	Stdout     io.Writer
-	Stop       context.CancelFunc
+	stop       context.CancelFunc
 }
 
+// Option is a function in a pointer to Recorder
+type Option func(*Recorder)
+
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
-func NewRecorder() (*Recorder, error) {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
-	return &Recorder{
-		Context:    ctx,
+func NewRecorder(opts ...Option) (*Recorder, error) {
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	r := &Recorder{
+		context:    ctx,
 		path:       "history.log",
 		permission: 0664,
 		Stderr:     os.Stderr,
 		Stdin:      os.Stdin,
 		Stdout:     os.Stdout,
-		Stop:       stop,
-	}, nil
+		stop:       stop,
+	}
+	for _, o := range opts {
+		o(r)
+	}
+	err := r.EnsureHistoryFileOpen()
+	if err != nil {
+		return nil, err
+	}
+
+	return r, nil
+}
+
+// WithLogPath implements History Log Path as functional option
+func WithLogPath(path string) Option {
+	return func(r *Recorder) {
+		r.path = path
+	}
+}
+
+// WithLogPermission implements History Log file permission as functional option
+func WithLogPermission(perm os.FileMode) Option {
+	return func(r *Recorder) {
+		r.permission = perm
+	}
+}
+
+// WithSignals implements which os.Signal to listen on as functional option
+func WithSignals(signals []os.Signal) Option {
+	return func(r *Recorder) {
+		ctx, stop := signal.NotifyContext(context.Background(), signals...)
+		r.context = ctx
+		r.stop = stop
+	}
 }
 
 func isValidPath(path string) error {
@@ -75,7 +111,7 @@ func (r *Recorder) EnsureHistoryFileOpen() error {
 func (r *Recorder) Session() {
 	err := r.EnsureHistoryFileOpen()
 	if err != nil {
-		r.Stop()
+		r.stop()
 		fmt.Fprintln(r.Stderr, err)
 		os.Exit(1)
 	}
@@ -86,16 +122,18 @@ func (r *Recorder) Session() {
 		reader := bufio.NewReader(r.Stdin)
 		input, err := reader.ReadString('\n')
 		if err == io.EOF {
-			r.Stop()
+			r.stop()
 			break
 		}
 		if err != nil {
 			fmt.Fprint(teeErr, err)
+			r.stop()
+			break
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
 			fmt.Fprintln(tee, input)
-			r.Stop()
+			r.stop()
 		}
 		fmt.Fprintln(r.File, input)
 		r.Execute(input)
@@ -116,7 +154,7 @@ func (r *Recorder) Execute(command string) error {
 	err := cmd.Run()
 	if err != nil {
 		// CMD does not capture error when command does not exist hence we need
-		// an extra print to send the data captured by CMD
+		// an extra print to send the error message to the stderr
 		fmt.Fprintln(cmd.Stderr, err)
 		return err
 	}
@@ -137,7 +175,7 @@ func (r *Recorder) SetPermission(perm os.FileMode) {
 // Shutdown implements a graceful shutdown for the package by displaying the
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
-func (r Recorder) Shutdown() {
+func (r Recorder) shutdown() {
 	// Print new line since we want to print the See recorded data in a clean
 	// line. If we do not do this, the message will be printed after the $
 	// making it confusing
@@ -147,4 +185,10 @@ func (r Recorder) Shutdown() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// WaitForExit wait until context is done and call shutdown function
+func (r *Recorder) WaitForExit() {
+	<-r.context.Done()
+	r.shutdown()
 }
