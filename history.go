@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 )
 
 // Recorder store object data for the package
@@ -30,7 +31,7 @@ type Option func(*Recorder)
 
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
 func NewRecorder(opts ...Option) (*Recorder, error) {
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	r := &Recorder{
 		context:    ctx,
 		path:       "history.log",
