@@ -123,6 +123,8 @@ func (r *Recorder) Session() {
 		}
 		if err != nil {
 			fmt.Fprint(teeErr, err)
+			r.stop()
+			break
 		}
 		input = input[:len(input)-1]
 		if input == "exit" || input == "quit" {
