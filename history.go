@@ -43,7 +43,10 @@ func NewRecorder(opts ...Option) (*Recorder, error) {
 	for _, o := range opts {
 		o(r)
 	}
-	r.EnsureHistoryFileOpen()
+	err := r.EnsureHistoryFileOpen()
+	if err != nil {
+		return nil, err
+	}
 
 	return r, nil
 }
