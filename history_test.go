@@ -28,7 +28,9 @@ func TestExecute(t *testing.T) {
 
 	command := "echo testing"
 	want := "testing\n"
-	r, err := history.NewRecorder()
+	r, err := history.NewRecorder(
+		history.WithLogPath("/tmp/history.log"),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +49,9 @@ func TestExecute(t *testing.T) {
 func TestErrorsCmdNotExist(t *testing.T) {
 	t.Parallel()
 
-	r, err := history.NewRecorder()
+	r, err := history.NewRecorder(
+		history.WithLogPath("/tmp/history.log"),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +88,9 @@ func TestSession(t *testing.T) {
 		t.Fatalf("cannot write string to the buffer: %v", err)
 	}
 
-	r, err := history.NewRecorder()
+	r, err := history.NewRecorder(
+		history.WithLogPath("/tmp/history.log"),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
