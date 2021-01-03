@@ -25,10 +25,11 @@ type Recorder struct {
 	stop       context.CancelFunc
 }
 
-type option func(*Recorder)
+// Option is a function in a pointer to Recorder
+type Option func(*Recorder)
 
 // NewRecorder instantiate a new Recorder object and returns a pointer to it.
-func NewRecorder(opts ...option) (*Recorder, error) {
+func NewRecorder(opts ...Option) (*Recorder, error) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
 	r := &Recorder{
 		context:    ctx,
@@ -51,21 +52,21 @@ func NewRecorder(opts ...option) (*Recorder, error) {
 }
 
 // WithLogPath implements History Log Path as functional option
-func WithLogPath(path string) option {
+func WithLogPath(path string) Option {
 	return func(r *Recorder) {
 		r.path = path
 	}
 }
 
 // WithLogPermission implements History Log file permission as functional option
-func WithLogPermission(perm os.FileMode) option {
+func WithLogPermission(perm os.FileMode) Option {
 	return func(r *Recorder) {
 		r.permission = perm
 	}
 }
 
 // WithSignals implements which os.Signal to listen on as functional option
-func WithSignals(signals []os.Signal) option {
+func WithSignals(signals []os.Signal) Option {
 	return func(r *Recorder) {
 		ctx, stop := signal.NotifyContext(context.Background(), signals...)
 		r.context = ctx
