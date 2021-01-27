@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	history "github.com/thiagonache/go-history"
 
@@ -53,6 +54,10 @@ func TestExecute(t *testing.T) {
 func TestErrorsCmdNotExist(t *testing.T) {
 	t.Parallel()
 
+	fakeStdErr := &bytes.Buffer{}
+	historyBuf := &testWriteCloser{}
+	fakeOutput := &bytes.Buffer{}
+
 	r, err := history.NewRecorder(
 		history.WithLogPath("/tmp/history-cmd-not-exist.log"),
 	)
@@ -60,10 +65,9 @@ func TestErrorsCmdNotExist(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fakeStdErr := &bytes.Buffer{}
 	r.Stderr = fakeStdErr
-	historyBuf := &testWriteCloser{}
 	r.File = historyBuf
+	r.Stdout = fakeOutput
 	err = r.Execute("doesntexist")
 	if err == nil {
 		t.Fatal(err)
@@ -81,9 +85,9 @@ func TestErrorsCmdNotExist(t *testing.T) {
 func TestSession(t *testing.T) {
 	t.Parallel()
 
-	var fakeOutput bytes.Buffer
-	var historyBuf testWriteCloser
-	var fakeInput bytes.Buffer
+	fakeOutput := &bytes.Buffer{}
+	historyBuf := &testWriteCloser{}
+	fakeInput := &bytes.Buffer{}
 
 	_, err := fakeInput.WriteString("echo testing\nexit\n")
 	if err != nil {
@@ -97,9 +101,9 @@ func TestSession(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	r.Stdin = &fakeInput
-	r.Stdout = &fakeOutput
-	r.File = &historyBuf
+	r.Stdin = fakeInput
+	r.Stdout = fakeOutput
+	r.File = historyBuf
 	r.Session()
 
 	wantHistory := "$ echo testing\ntesting\n$ "
@@ -115,8 +119,12 @@ func TestSession(t *testing.T) {
 
 func TestWithLogPath(t *testing.T) {
 	t.Parallel()
+
+	fakeOutput := &bytes.Buffer{}
 	const charset = "abcdefghijklmnopqrstuvxzABCDEFGHIJKLMNOPQRSTUVXZ"
-	b := make([]byte, 5)
+
+	rand.Seed(time.Now().UnixNano())
+	b := make([]byte, 8)
 	for i := range b {
 		b[i] = charset[rand.Intn(len(charset))]
 	}
@@ -129,29 +137,38 @@ func TestWithLogPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	r.Stdout = fakeOutput
+
 	fd, err := os.Stat(historyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
 	got := fd.Name()
+
 	if !cmp.Equal(want, got) {
 		t.Errorf(cmp.Diff(want, got))
 	}
+
 	r.Shutdown()
 }
 
 func TestWithLogPermission(t *testing.T) {
 	t.Parallel()
 
+	var want os.FileMode = 0600
+	fakeOutput := &bytes.Buffer{}
+	historyPath := "/tmp/history-log-permission.log"
+
 	r, err := history.NewRecorder(
 		history.WithLogPermission(0600),
-		history.WithLogPath("/tmp/history-log-permission.log"),
+		history.WithLogPath(historyPath),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	var want os.FileMode = 0600
-	fd, err := os.Stat("/tmp/history-log-permission.log")
+	r.Stdout = fakeOutput
+
+	fd, err := os.Stat(historyPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,5 +177,6 @@ func TestWithLogPermission(t *testing.T) {
 	if want != got {
 		t.Errorf("want %d, got %d", want, got)
 	}
+
 	r.Shutdown()
 }
