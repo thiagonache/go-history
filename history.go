@@ -127,7 +127,9 @@ func (r *Recorder) Session() {
 			r.stop()
 		}
 		fmt.Fprintln(r.File, input)
-		r.Execute(input)
+		// Execution errors are stored in the historyFile hence it is fine to
+		// ignore them here.
+		_ = r.Execute(input)
 	}
 }
 
