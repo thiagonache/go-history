@@ -139,11 +139,11 @@ func TestWithLogPath(t *testing.T) {
 	}
 	r.Stdout = fakeOutput
 
-	fd, err := os.Stat(historyFile)
+	inode, err := os.Stat(historyFile)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := fd.Name()
+	got := inode.Name()
 
 	if !cmp.Equal(want, got) {
 		t.Errorf(cmp.Diff(want, got))
@@ -168,11 +168,11 @@ func TestWithLogPermission(t *testing.T) {
 	}
 	r.Stdout = fakeOutput
 
-	fd, err := os.Stat(historyPath)
+	inode, err := os.Stat(historyPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	got := fd.Mode().Perm()
+	got := inode.Mode().Perm()
 
 	if want != got {
 		t.Errorf("want %d, got %d", want, got)
