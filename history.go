@@ -121,7 +121,7 @@ func (r *Recorder) Session() {
 			r.stop()
 			break
 		}
-		input = input[:len(input)-1]
+		input = strings.TrimSuffix(input, "\n")
 		if input == "exit" || input == "quit" {
 			fmt.Fprintln(tee, input)
 			r.stop()
