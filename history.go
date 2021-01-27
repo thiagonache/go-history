@@ -66,15 +66,6 @@ func WithLogPermission(perm os.FileMode) Option {
 	}
 }
 
-// WithSignals implements which os.Signal to listen on as functional option
-func WithSignals(signals []os.Signal) Option {
-	return func(r *Recorder) {
-		ctx, stop := signal.NotifyContext(context.Background(), signals...)
-		r.context = ctx
-		r.stop = stop
-	}
-}
-
 func isValidPath(path string) error {
 	basedir := filepath.Dir(path)
 	info, err := os.Stat(basedir)
