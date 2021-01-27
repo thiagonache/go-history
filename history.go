@@ -155,20 +155,10 @@ func (r *Recorder) Execute(command string) error {
 	return nil
 }
 
-// SetPath takes a string and set history log file path
-func (r *Recorder) SetPath(path string) {
-	r.path = path
-}
-
-// SetPermission takes a string and set history log file path
-func (r *Recorder) SetPermission(perm os.FileMode) {
-	r.permission = perm
-}
-
 // Shutdown implements a graceful shutdown for the package by displaying the
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
-func (r Recorder) shutdown() {
+func (r Recorder) Shutdown() {
 	// Print new line since we want to print the See recorded data in a clean
 	// line. If we do not do this, the message will be printed after the $
 	// making it confusing
@@ -183,5 +173,5 @@ func (r Recorder) shutdown() {
 // WaitForExit wait until context is done and call shutdown function
 func (r *Recorder) WaitForExit() {
 	<-r.context.Done()
-	r.shutdown()
+	r.Shutdown()
 }

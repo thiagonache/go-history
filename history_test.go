@@ -74,6 +74,7 @@ func TestErrorsCmdNotExist(t *testing.T) {
 	if historyBuf.Len() == 0 {
 		t.Error("want something written to history file, got nothing")
 	}
+	r.Shutdown()
 }
 
 func TestSession(t *testing.T) {
