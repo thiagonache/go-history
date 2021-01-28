@@ -66,15 +66,6 @@ func WithLogPermission(perm os.FileMode) Option {
 	}
 }
 
-// WithSignals implements which os.Signal to listen on as functional option
-func WithSignals(signals []os.Signal) Option {
-	return func(r *Recorder) {
-		ctx, stop := signal.NotifyContext(context.Background(), signals...)
-		r.context = ctx
-		r.stop = stop
-	}
-}
-
 func isValidPath(path string) error {
 	basedir := filepath.Dir(path)
 	info, err := os.Stat(basedir)
@@ -130,13 +121,15 @@ func (r *Recorder) Session() {
 			r.stop()
 			break
 		}
-		input = input[:len(input)-1]
+		input = strings.TrimSuffix(input, "\n")
 		if input == "exit" || input == "quit" {
 			fmt.Fprintln(tee, input)
 			r.stop()
 		}
 		fmt.Fprintln(r.File, input)
-		r.Execute(input)
+		// Execution errors are stored in the historyFile hence it is fine to
+		// ignore them here.
+		_ = r.Execute(input)
 	}
 }
 
@@ -162,20 +155,10 @@ func (r *Recorder) Execute(command string) error {
 	return nil
 }
 
-// SetPath takes a string and set history log file path
-func (r *Recorder) SetPath(path string) {
-	r.path = path
-}
-
-// SetPermission takes a string and set history log file path
-func (r *Recorder) SetPermission(perm os.FileMode) {
-	r.permission = perm
-}
-
 // Shutdown implements a graceful shutdown for the package by displaying the
 // path of the file with the data recorded and make sure the file descriptor is
 // closed.
-func (r Recorder) shutdown() {
+func (r Recorder) Shutdown() {
 	// Print new line since we want to print the See recorded data in a clean
 	// line. If we do not do this, the message will be printed after the $
 	// making it confusing
@@ -190,5 +173,5 @@ func (r Recorder) shutdown() {
 // WaitForExit wait until context is done and call shutdown function
 func (r *Recorder) WaitForExit() {
 	<-r.context.Done()
-	r.shutdown()
+	r.Shutdown()
 }
