@@ -29,7 +29,6 @@ func (wrc *testWriteCloser) Close() error { return nil }
 
 func TestExecute(t *testing.T) {
 	t.Parallel()
-
 	command := "echo testing"
 	want := "testing\n"
 	r, err := history.NewRecorder(

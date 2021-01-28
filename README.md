@@ -1,3 +1,7 @@
+```go
+import "github.com/thiagonache/go-history"
+```
+
 # Golang History
 
 ![Go](https://github.com/thiagonache/go-history/workflows/Go/badge.svg?branch=master)
